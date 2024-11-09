@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  evm-xsign-db:
+    image: mongo:8.0.1-rc0-noble
+    ports:
+      - '27017:27017'
+    volumes:
+      - ~/.databases/mongodb-docker/:/data/db
+
