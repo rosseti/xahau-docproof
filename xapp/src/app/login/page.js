@@ -14,14 +14,20 @@ import { toast } from "react-toastify";
 
 const LoginPage = () => {
   const router = useRouter();
-  const { account, isLoading } = useContext(AppContext);
+  const { account, isLoading, error, setError } = useContext(AppContext);
 
   useEffect(() => {
     if (account) {
       toast.success("You are now logged in.");
       router.push("/doc/list");
     }
-  }, [account]);
+
+    if (error) {
+      toast.error(error);
+      setError(null);
+    }
+
+  }, [account, error]);
 
   if (isLoading) return <PageLoader />;
 
@@ -39,8 +45,8 @@ const LoginPage = () => {
             {/* <ShieldCheck className="w-16 h-16 text-blue-400 mt-4" /> */}
             <h1 className="text-3xl font-bold text-white mb-2">
               <img
-                src="/logo-xahau-docsign.svg"
-                alt="EVM | XSign"
+                src="/logo-xahau-docproof.svg"
+                alt="Xahau | DocProof"
                 style={{ width: "300px", height: "150px" }}
               />
             </h1>

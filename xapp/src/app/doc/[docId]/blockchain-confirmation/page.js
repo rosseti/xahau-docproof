@@ -1,75 +1,18 @@
 "use client";
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import { AppContext } from "@/context/AppContext";
-import { addDocument, getContract } from "@/services/Web3Service";
+import { addDocument } from "@/services/Web3Service";
 
 import { toast } from "react-toastify";
 
 import { useParams, useRouter } from "next/navigation";
 
 import PageLoader from "@/components/PageLoader";
-import { getDocument, updateDocumentStatus } from "@/services/APIService";
+import ApiService, { getDocument, updateDocumentStatus } from "@/services/APIService";
 
 import { SiHiveBlockchain } from "react-icons/si";
-
-export function useContractEvent(eventName, options = {}) {
-  const subscription = useRef(null);
-
-  useEffect(() => {
-    const contract = getContract();
-
-    const initEventListener = async () => {
-      try {
-        if (subscription.current) {
-          subscription.current.unsubscribe();
-        }
-
-        subscription.current = contract.events[eventName]({
-          fromBlock: options.fromBlock || "latest",
-          ...options,
-        });
-
-        subscription.current.on("connected", (subscriptionId) => {
-          console.log("Connected to subscription:", subscriptionId);
-        });
-
-        subscription.current.on("data", (event) => {
-          console.log("Evento recebido:", event);
-
-          if (options.txHash && options.onMatchingEvent) {
-            if (event.transactionHash === options.txHash) {
-              options.onMatchingEvent(event);
-            }
-          } else if (options.onEvent) {
-            options.onEvent(event);
-          }
-        });
-
-        subscription.current.on("error", (error) => {
-          console.error("Erro no evento:", error);
-          if (options.onError) options.onError(error);
-        });
-      } catch (error) {
-        console.error("Erro ao inicializar evento:", error);
-        if (options.onError) options.onError(error);
-      }
-    };
-
-    initEventListener();
-
-    return () => {
-      if (subscription.current) {
-        console.log("Cancelando subscription do evento");
-        subscription.current.off();
-        subscription.current.unsubscribe();
-        subscription.current.removeAllListeners();
-        subscription.current = null;
-      }
-    };
-  }, [eventName, options]);
-}
 
 export default function PageBlockchainConfirmation() {
   const { account, isLoading } = useContext(AppContext);
@@ -80,56 +23,25 @@ export default function PageBlockchainConfirmation() {
   const [authorizedSignersHash, setAuthorizedSignersHash] = useState([]);
   const [txHash, setTxHash] = useState(null);
   const [isFinished, setFinished] = useState(false);
-
+  const [apiService, setApiService] = useState(null);
+  const { xumm } = useContext(AppContext);
   const { docId } = useParams();
 
   const { push } = useRouter();
 
-  useContractEvent("DocumentCreated", {
-    fromBlock: "latest",
-    txHash: txHash,
-    onMatchingEvent: (event) => {
-      const { transactionHash } = event;
-      const { storageKey } = event.returnValues;
-
-      if (isFinished) return;
-
-      console.log("txHash: ", txHash);
-      console.log("transactionHash: ", transactionHash);
-
-      if (txHash !== null && transactionHash == txHash) {
-        setFinished(true);
-        updateDocumentStatus(docId, "On Blockchain", {
-          contractStorageKey: storageKey,
-        })
-          .then(() => {
-            toast.success("Success! Now your document is on the blockchain!");
-
-            setTimeout(() => {
-              setIsAwaiting(false);
-              push(`/doc/${docId}/success`);
-            }, 1000);
-          })
-          .catch((error) => {
-            setIsAwaiting(false);
-            console.error("Erro:", error);
-            toast.error(processError(error));
-          });
-      }
-      console.log("New event:", event);
-    },
-    onError: (error) => {
-      console.error("Erro:", error);
-    },
-  });
+  useEffect(() => {
+    if (!xumm) return;
+    setApiService(ApiService(xumm));
+  }, [xumm]);
 
   useEffect(() => {
-    getDocument(docId).then(({ document }) => {
+    if (!apiService) return;
+    apiService.getDocument(docId).then(({ document }) => {
       setDocument(document);
       setAuthorizedSigners(document.authorizedSigners);
       setAuthorizedSignersHash(document.authorizedSignersHash);
     });
-  }, []);
+  }, [apiService]);
 
   const addHexPrefix = (value) => (value ? `0x${value}` : null);
 

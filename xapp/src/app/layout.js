@@ -34,7 +34,7 @@ export default function RootLayout({ children }) {
       <AppProvider>
         <html lang="en">
           <head>
-            <title>{process.env.NEXT_PUBLIC_APP_NAME || "EVM | XSign"}</title>
+            <title>{process.env.NEXT_PUBLIC_APP_NAME || "Xahau | DocProof"}</title>
           </head>
           <body
             className={`${geistSans.variable} ${geistMono.variable} antialiased`}

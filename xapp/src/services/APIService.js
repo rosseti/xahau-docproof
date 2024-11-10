@@ -28,64 +28,55 @@ const ApiService = (xumm) => {
     }
   }
 
+  async function getDocument(documentId) {
+    try
+    {
+      const headers = {
+        'Authorization': `Bearer ${await xumm.environment.bearer}`,
+      };
+      
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}`,
+        {
+          headers
+        }
+      );
+  
+      return response.data;
+    } catch (error) {
+      console.error("Error getting document: ", error);
+    }
+  }
+
+  async function addAuthorizedSigners(documentId, authorizedSigners) {
+    try
+    {
+      const headers = {
+        'Authorization': `Bearer ${await xumm.environment.bearer}`,
+      };
+      
+      const response = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}/authorized-signers`,
+        {
+          authorizedSigners
+        },
+        {
+          headers
+        }
+      );
+  
+      return response.data;
+    } catch (error) {
+      console.error("Error adding authorized signers:", error);
+    }
+  }
+
   return {
-    getDocuments,
+    getDocuments, getDocument, addAuthorizedSigners
   };
 };
 
 export default ApiService;
-
-// const { xumm } = useContext(AppContext);
-// export const getRequestHeaders = async () => {
-//   console.log(xumm);
-
-//   const bearer = await xumm.environment.bearer;
-//   console.log(bearer);
-//   // const wallet = localStorage.getItem("wallet");
-//   // const signature = localStorage.getItem("signature");
-//   // const message = localStorage.getItem("message");
-
-//   return {
-//     'Authorization': `Bearer ${bearer}}`,
-//   }
-// }
-
-// export async function getDocument(documentId) {
-//   try
-//   {
-//     const headers = await getRequestHeaders();
-//     const response = await axios.get(
-//       `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}`,
-//       {
-//         headers
-//       }
-//     );
-
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error getting document: ", error);
-//   }
-// }
-
-// export async function addAuthorizedSigners(documentId, authorizedSigners) {
-//   try
-//   {
-//     const headers = await getRequestHeaders();
-//     const response = await axios.put(
-//       `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}/authorized-signers`,
-//       {
-//         authorizedSigners
-//       },
-//       {
-//         headers
-//       }
-//     );
-
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error adding authorized signers:", error);
-//   }
-// }
 
 // export async function getDocuments() {
 //   try

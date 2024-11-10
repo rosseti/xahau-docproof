@@ -1,13 +1,8 @@
-// src/context/AppContext.js
-
 "use client";
 
-import { createContext, useState, useEffect } from "react";
-// import { doLogin } from "@/services/Web3Service";
+import { createContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Xumm } from "xumm";
-import { toast } from "react-toastify";
-// import { Xumm } from "xumm";
 
 export const AppContext = createContext();
 
@@ -16,6 +11,7 @@ export const AppProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { push } = useRouter();
   const [xumm, setXumm] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const savedAccount = localStorage.getItem("wallet");
@@ -31,9 +27,6 @@ export const AppProvider = ({ children }) => {
     const xummReady = () => {
       console.log("XUMM Ready.");
     };
-    const xummError = async () => (error) => {
-      toast.error(error.message);
-    };
 
     const xummSuccess = async () => {
       {
@@ -44,10 +37,15 @@ export const AppProvider = ({ children }) => {
       }
     };
 
-    if (xumm) {
-      xumm.on("ready", () => xummReady);
+    const xummError = (err) => {
+      setError(err.message || "Unknown error.");
+      console.error("XUMM Error:", err);
+    };
 
-      xumm.on("success", async () => xummSuccess);
+    if (xumm) {
+      xumm.on("ready", xummReady);
+
+      xumm.on("success", xummSuccess);
 
       xumm.on("error", xummError);
     }
@@ -59,7 +57,7 @@ export const AppProvider = ({ children }) => {
         xumm.off("error", xummError);
       }
     };
-  }, [xumm]);
+  }, [xumm, isLoading]);
 
   const connectMetaMask = () => {
     xumm.authorize();
@@ -74,7 +72,7 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppContext.Provider
-      value={{ account, connectMetaMask, logout, isLoading, xumm }}
+      value={{ account, connectMetaMask, logout, isLoading, xumm, error, setError }}
     >
       {children}
     </AppContext.Provider>

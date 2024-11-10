@@ -39,9 +39,7 @@ const Header = () => {
                 </div>
                 
                 <a className="btn btn-ghost normal-case text-xl">
-                
-                    {process.env.NEXT_PUBLIC_APP_NAME || 'SecureSmartSign'}
-                    <span className="badge bg-purple-100 text-purple-800 text-xs font-medium">beta</span>
+                    <img src="/logo-xahau-docproof-dark.svg" alt="Xaman Logo" width={150} />
                 </a>
             </div>
 
