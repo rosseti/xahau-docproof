@@ -1,7 +1,8 @@
 #include "hookapi.h"
 
-// Seguindo exemplo do Wietse:
-// https://gist.github.com/WietseWind/e8e1510fe114ae76cfac1b65b06b129f
+/**
+ * Memo ref from: https://gist.github.com/WietseWind/e8e1510fe114ae76cfac1b65b06b129f
+ */
 
 #define PARAM_REGISTER "REGISTER"
 #define PARAM_SIGN "SIGN"
@@ -24,25 +25,15 @@ int64_t hook(int32_t reserved)
     uint8_t memos[MAX_MEMO_SIZE];
     int64_t memos_len = otxn_field(SBUF(memos), sfMemos);
 
-    uint32_t payload_len = 0;
-    uint8_t *payload_ptr = 0;
-
-    // if there is a memo present then we are in mode 1 above, but we need to ensure the user isn't invoking
-    // undefined behaviour by making them pick either mode 1 or mode 2:
-
     if (memos_len <= 0)
         accept(SBUF("Notary: Incoming txn without memo, passing."), 0);
 
     if (memos_len > 0)
     {
-        // since our memos are in a buffer inside the hook (as opposed to being a slot) we use the sto api with it
-        // the sto apis probe into a serialized object returning offsets and lengths of subfields or array entries
         int64_t memo_lookup = sto_subarray(memos, memos_len, 0);
         uint8_t *memo_ptr = SUB_OFFSET(memo_lookup) + memos;
         uint32_t memo_len = SUB_LENGTH(memo_lookup);
 
-        // memos are nested inside an actual memo object, so we need to subfield
-        // equivalently in JSON this would look like memo_array[i]["Memo"]
         memo_lookup = sto_subfield(memo_ptr, memo_len, sfMemo);
         memo_ptr = SUB_OFFSET(memo_lookup) + memo_ptr;
         memo_len = SUB_LENGTH(memo_lookup);
