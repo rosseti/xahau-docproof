@@ -14,10 +14,20 @@ int64_t hook(int32_t reserved)
 {
     TRACESTR("Docproof.c: Called.");
 
+    typedef struct DPSignature {
+        uint8_t signer_acc[20];
+        uint8_t doc_hash[32];
+        uint8_t tx_hash[32];
+        uint8_t pub_key[33];
+    } Signature;
+
+    Signature sig;
+
     uint8_t param_buffer[9];
-    uint8_t doc_hash[32];
+    // uint8_t doc_hash[32];
 
     int64_t param_size = otxn_param(SBUF(param_buffer), "operation", 9);
+    TRACESTR(param_buffer);
 
     if (param_size < 0)
         rollback(SBUF("Operation parameter not found"), 1);
@@ -58,33 +68,58 @@ int64_t hook(int32_t reserved)
             rollback(SBUF("Notary: Memo too large (4kib max)."), 4);
 
         for (int i = 0; GUARD(32), i < 32; ++i)
-            doc_hash[i] = data_ptr[i];
+            sig.doc_hash[i] = data_ptr[i];
 
-        TRACEHEX(doc_hash);
+        TRACEHEX(sig.doc_hash);
     }
 
     int is_param_register = 0, is_param_sign = 0;
 
-    BUFFER_EQUAL_STR_GUARD(is_param_register, param_buffer, param_size, PARAM_REGISTER, 1);
+    // BUFFER_EQUAL_STR_GUARD(is_param_register, param_buffer, param_size, PARAM_REGISTER, 1);
     BUFFER_EQUAL_STR_GUARD(is_param_sign, param_buffer, param_size, PARAM_SIGN, 1);
 
-    if (is_param_register > 0)
-    {
-        uint8_t existing_value[32];
-        int64_t existing = state(SBUF(existing_value), SBUF(doc_hash));
-        if (existing >= 0)
-            rollback(SBUF("Document already registered"), 3);
+    // if (is_param_register > 0)
+    // {
+    //     uint8_t existing_value[32];
+    //     int64_t existing = state(SBUF(existing_value), SBUF(doc_hash));
+    //     if (existing >= 0)
+    //         rollback(SBUF("Document already registered"), 3);
 
-        if (state_set(SBUF(doc_hash), SBUF(doc_hash)) < 0)
-            rollback(SBUF("Error registering document"), 4);
+    //     if (state_set(SBUF(doc_hash), SBUF(doc_hash)) < 0)
+    //         rollback(SBUF("Error registering document"), 4);
 
-        accept(SBUF("Document registered successfully"), 0);
-        return 0;
-    }
+    //     accept(SBUF("Document registered successfully"), 0);
+    //     return 0;
+    // }
 
     if (is_param_sign > 0)
     {
-        uint8_t existing_value[32];
+        uint8_t state_key_len = 52;
+        uint8_t state_key[state_key_len], state_key_hex[32];
+
+        int64_t signer_acc_size = otxn_field(SBUF(sig.signer_acc), sfAccount);
+
+        for (int i = 0; GUARD(32), i < 32; i++)
+            state_key[i] = sig.doc_hash[i];
+
+        for (int i = 0; GUARD(20), i < 20; i++)
+            state_key[i + 32] = sig.signer_acc[i];
+
+        if (util_sha512h(SBUF(state_key_hex), SBUF(state_key)) < 0)
+            rollback(SBUF("Notary: Could not compute sha512 over the submitted txn."), 5);
+
+        int64_t existing = state(SVAR(sig), SBUF(state_key));
+
+        if (existing < 0)
+            rollback(SBUF("Document already signed."), 5);
+        
+        TRACEHEX(state_key_hex);
+
+        if (state_set(SVAR(sig), SBUF(state_key)) < 0)
+            rollback(SBUF("Error registering signature"), 7);
+        
+
+        /* uint8_t existing_value[32];
         int64_t existing = state(SBUF(existing_value), SBUF(doc_hash));
         if (existing < 0)
             rollback(SBUF("Document not found for signing"), 5);
@@ -110,7 +145,7 @@ int64_t hook(int32_t reserved)
         otxn_field(SBUF(tx_hash), sfTransactionHash);
 
         if (state_set(SBUF(signature_key), SBUF(tx_hash)) < 0)
-            rollback(SBUF("Error registering signature"), 7);
+            rollback(SBUF("Error registering signature"), 7); */
 
         accept(SBUF("Document signed successfully"), 0);
         return 0;
