@@ -1,8 +1,11 @@
 #include "hookapi.h"
 
 /**
- * Memo ref from: https://gist.github.com/WietseWind/e8e1510fe114ae76cfac1b65b06b129f
- * https://www.kirilv.com/canvas-confetti/
+ * docproof.c - Secure document signing on Xahau Blockchain Network.
+ *
+ * Author: Andrei Rosseti
+ * Date: 12 Nov 2024
+ *
  */
 
 #define MAX_MEMO_SIZE 4096
