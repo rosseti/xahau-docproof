@@ -68,7 +68,7 @@ export default function PageSuccess() {
   return (
     <>
       <div className="container mx-auto pt-10 px-4 w-1/2">
-        <div class="flex flex-col items-center mb-4">
+        <div className="flex flex-col items-center mb-4">
 
           <img src="/icon-paper-send.png" style={{height: '120px'}} />
           <h1 className="text-2xl  font-bold pb-4">{document.name}</h1>
