@@ -36,6 +36,8 @@
     "ecpair": "^3.0.0-rc.0",
     "eslint": "^9.12.0",
     "express": "^4.21.1",
+    "handlebars": "^4.7.8",
+    "handlebars-inline-precompile": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
     "jwk-to-pem": "^2.0.6",
     "morgan": "^1.10.0",

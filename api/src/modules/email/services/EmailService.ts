@@ -1,4 +1,8 @@
 const nodemailer = require("nodemailer");
+import Handlebars from "handlebars";
+import fs from "fs";
+import * as path from 'path';
+
 
 export class EmailService {
   private readonly transporter: any;
@@ -13,6 +17,13 @@ export class EmailService {
         pass: process.env.SMTP_PASS,
       },
     });
+  }
+
+  async loadTemplate(templatePath: string, variables: any): Promise<string> {
+    const absolutePath = path.join(__dirname, '../templates/', templatePath);
+    const source = fs.readFileSync(absolutePath, "utf8");
+    const template = Handlebars.compile(source);
+    return template(variables);
   }
 
   async sendEmail(
