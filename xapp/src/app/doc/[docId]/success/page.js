@@ -45,7 +45,7 @@ export default function PageSuccess() {
   useEffect(() => {
     if (isLoading) return;
 
-    const numBursts = 10;
+    const numBursts = 5;
     const delayBetweenBursts = 250;
 
     setTimeout(() => {
