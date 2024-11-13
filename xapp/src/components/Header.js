@@ -65,7 +65,7 @@ const Header = () => {
 
             <div className="navbar-end">
                 {account ? (
-                    <button className="btn btn-primary btn-neutral shadow-lg" onClick={() => logout()}>Logout</button>
+                    <button className="btn btn-outline shadow-lg" onClick={() => logout()}>Logout</button>
                 ) : ''}
             </div>
         </header>

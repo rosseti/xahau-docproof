@@ -23,16 +23,12 @@ export class DocumentController {
     res: Response
   ): Promise<any> {
     const { documentId } = req.params;
-    const { newStatus, transactionHash, contractStorageKey } = req.body;
+    const { newStatus } = req.body;
 
     try {
       const document = await DocumentService.updateDocumentStatus(
         documentId,
-        newStatus,
-        {
-          transactionHash,
-          contractStorageKey,
-        }
+        newStatus
       );
 
       return res.status(200).json({
@@ -72,15 +68,14 @@ export class DocumentController {
     const { authorizedSigners } = req.body;
 
     try {
-      const authorizedSignersHash =
+      const signers =
         await DocumentService.updateAuthorizedSigners(
           documentId,
           authorizedSigners
         );
 
       return res.status(200).json({
-        authorizedSigners,
-        authorizedSignersHash,
+        signers
       });
     } catch (error: any) {
       const statusCode =

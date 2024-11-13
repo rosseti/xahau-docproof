@@ -13,7 +13,7 @@ import PageLoader from "@/components/PageLoader";
 import ApiService, {
   addAuthorizedSigners
 } from "@/services/APIService";
-import { FiPlus } from "react-icons/fi";
+import { FiArrowRight, FiChevronRight, FiPlus } from "react-icons/fi";
 
 export default function PageAddSigners() {
   const { account, isLoading } = useContext(AppContext);
@@ -59,8 +59,8 @@ export default function PageAddSigners() {
 
     await apiService.addAuthorizedSigners(docId, authorizedSigners)
       .then(({ data }) => {
-        toast.success("Successful associated parties!");
-        push(`/doc/${docId}/blockchain-confirmation`);
+        toast.success("Sent successfully!");
+        push(`/doc/${docId}/success`);
       })
       .catch((error) => {
         toast.error("Erro ao associar partes!", error);
@@ -105,14 +105,15 @@ export default function PageAddSigners() {
               className="mb-4"
             />
 
+            
             <button
               onClick={handleSubmit}
               className={`btn btn-primary shadow-lg`}
               disabled={isAwaiting}
             >
+              Send 
               {isAwaiting && <span className="loading loading-spinner"></span>}
-              {!isAwaiting && <FiPlus />}
-              Add Signers
+              {!isAwaiting && <FiArrowRight />}
             </button>
           </div>
         </div>

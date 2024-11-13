@@ -35,6 +35,10 @@ export default function RootLayout({ children }) {
         <html lang="en">
           <head>
             <title>{process.env.NEXT_PUBLIC_APP_NAME || "Xahau | DocProof"}</title>
+            {/* <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet" /> */}
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
+            <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
           </head>
           <body
             className={`${geistSans.variable} ${geistMono.variable} antialiased`}

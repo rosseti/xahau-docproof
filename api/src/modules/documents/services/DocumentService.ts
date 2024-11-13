@@ -4,7 +4,10 @@ import {
   HttpException,
   NotFoundException,
 } from "@/exceptions";
-import UserDocument, { IUserDocument } from "@/models/UserDocument";
+import UserDocument, {
+  IUserDocument,
+  Signer,
+} from "@/modules/documents/models/UserDocument";
 import crypto from "crypto";
 import fs from "fs";
 import mongoose from "mongoose";
@@ -19,9 +22,9 @@ export class DocumentService {
     const documents: IUserDocument[] = await UserDocument.find({
       owner: wallet,
     })
-      .select(
-        "-transactionHash -contractStorageKey -authorizedSigners -signedSigners"
-      )
+      // .select(
+      //   "-signedSigners"
+      // )
       .sort({ createdAt: -1 });
 
     return documents;
@@ -29,8 +32,7 @@ export class DocumentService {
 
   static updateDocumentStatus = async (
     documentId: string,
-    newStatus: DocumentStatus,
-    params: { transactionHash?: string; contractStorageKey?: string } = {}
+    newStatus: DocumentStatus
   ): Promise<IUserDocument | null> => {
     if (!documentId) {
       throw new BadRequestException("Document ID is required.");
@@ -73,12 +75,6 @@ export class DocumentService {
     // if (validTransitions[currentStatus]?.includes(newStatus)) {
     document.status = newStatus;
 
-    if (params.transactionHash)
-      document.transactionHash = params.transactionHash;
-
-    if (params.contractStorageKey)
-      document.contractStorageKey = params.contractStorageKey;
-
     await document.save();
 
     return document;
@@ -103,20 +99,8 @@ export class DocumentService {
       owner,
       status,
       expirationTime,
-      authorizedSigners,
-      transactionHash,
-      contractStorageKey,
+      signers,
     } = document;
-
-    const authorizedSignersHash = authorizedSigners?.map((signer: string) => {
-      return (
-        "0x" +
-        crypto
-          .createHash("sha256")
-          .update(hash + signer)
-          .digest("hex")
-      );
-    });
 
     return {
       id,
@@ -127,10 +111,7 @@ export class DocumentService {
       owner,
       status,
       expirationTime,
-      authorizedSigners,
-      authorizedSignersHash,
-      transactionHash,
-      contractStorageKey,
+      signers,
     };
   };
 
@@ -151,21 +132,17 @@ export class DocumentService {
       throw new NotFoundException("Document not found");
     }
 
-    document.authorizedSigners = authorizedSigners;
-
-    const authorizedSignersHash = authorizedSigners.map((signer) => {
-      return (
-        "0x" +
-        crypto
-          .createHash("sha256")
-          .update(document.hash + signer)
-          .digest("hex")
-      );
-    });
+    for (const email of authorizedSigners) {
+      const signer = new Signer({
+        email,
+        status: false,
+      });
+      document.signers.push(signer);
+    }
 
     await document.save();
 
-    return authorizedSignersHash;
+    return document.signers;
   };
 
   static createDocument = async (req: any): Promise<any> => {

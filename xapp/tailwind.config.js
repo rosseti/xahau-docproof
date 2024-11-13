@@ -7,6 +7,9 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        'signature': ['"Pacifico"', 'cursive'], // Nome da fonte
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",

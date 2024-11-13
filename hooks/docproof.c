@@ -27,16 +27,7 @@ int64_t hook(int32_t reserved)
     }
 
     Signature sig;
-
-    uint8_t param_buffer[9];
     uint8_t memos[MAX_MEMO_SIZE];
-
-    int64_t param_size = otxn_param(SBUF(param_buffer), "operation", 9);
-
-    if (param_size < 0)
-        rollback(SBUF("DP: Operation parameter not found"), 1);
-
-    TRACESTR(param_buffer);
 
     int64_t memos_len = otxn_field(SBUF(memos), sfMemos);
 
