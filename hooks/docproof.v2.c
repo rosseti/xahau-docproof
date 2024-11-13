@@ -2,10 +2,8 @@
 
 /**
  * Memo ref from: https://gist.github.com/WietseWind/e8e1510fe114ae76cfac1b65b06b129f
+ * https://www.kirilv.com/canvas-confetti/
  */
-
-#define PARAM_REGISTER "REGISTER"
-#define PARAM_SIGN "SIGN"
 
 #define MAX_MEMO_SIZE 4096
 
@@ -13,7 +11,6 @@ typedef struct DPSignature
 {
     uint8_t signer_acc[20];
     uint8_t doc_hash[32];
-    uint64_t timestamp;
 } Signature;
 
 int64_t hook(int32_t reserved)
