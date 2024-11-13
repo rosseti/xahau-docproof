@@ -12,6 +12,7 @@ import crypto from "crypto";
 import fs from "fs";
 import mongoose from "mongoose";
 import path from "path";
+import { NotificationService } from "./NotificationService";
 
 export class DocumentService {
   static getDocuments = async (wallet: string): Promise<IUserDocument[]> => {
@@ -50,13 +51,8 @@ export class DocumentService {
 
     const validTransitions: Record<DocumentStatus, DocumentStatus[]> = {
       [DocumentStatus.Pending]: [
-        DocumentStatus.WaitingForBlockchainConfirmation,
         DocumentStatus.Rejected,
       ],
-      [DocumentStatus.WaitingForBlockchainConfirmation]: [
-        DocumentStatus.OnBlockchain,
-      ],
-      [DocumentStatus.OnBlockchain]: [DocumentStatus.AwaitingSignatures],
       [DocumentStatus.AwaitingSignatures]: [
         DocumentStatus.PartiallySigned,
         DocumentStatus.FullySigned,
@@ -115,16 +111,16 @@ export class DocumentService {
     };
   };
 
-  static updateAuthorizedSigners = async (
+  static saveAndNotifySigners = async (
     documentId: string,
-    authorizedSigners: string[]
+    signers: string[]
   ): Promise<any> => {
     if (!mongoose.Types.ObjectId.isValid(documentId)) {
       throw new BadRequestException("Invalid document ID format.");
     }
 
-    if (!Array.isArray(authorizedSigners) || authorizedSigners.length === 0) {
-      throw new HttpException(400, "Invalid authorizedSigners list or empty.");
+    if (!Array.isArray(signers) || signers.length === 0) {
+      throw new HttpException(400, "Invalid signers list or empty.");
     }
 
     const document = await UserDocument.findById(documentId);
@@ -132,7 +128,7 @@ export class DocumentService {
       throw new NotFoundException("Document not found");
     }
 
-    for (const email of authorizedSigners) {
+    for (const email of signers) {
       const signer = new Signer({
         email,
         status: false,
@@ -140,6 +136,10 @@ export class DocumentService {
       document.signers.push(signer);
     }
 
+    const notificationService = new NotificationService();
+    await notificationService.notifySignersForReview(document);
+
+    document.status = DocumentStatus.AwaitingSignatures;
     await document.save();
 
     return document.signers;
@@ -172,7 +172,7 @@ export class DocumentService {
       name: originalFilename,
       size: req.file.size,
       extension: ext,
-      authorizedSigners: req.body.authorizedSigners || [],
+      signers: req.body.signers || [],
       expirationTime,
       owner: req.user.sub,
     });

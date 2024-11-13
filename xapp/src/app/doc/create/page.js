@@ -52,8 +52,13 @@ export default function PageCreate() {
           data: { id },
         } = response.data;
 
+        setIsAwaiting(false);
+
         toast.success("Documento enviado com sucesso!");
         push(`/doc/${id}/add-signers`);
+      }).catch((error) => {
+        toast.error(error.message);
+        setIsAwaiting(false);
       });
   };
 

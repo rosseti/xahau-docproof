@@ -18,30 +18,30 @@ export class DocumentController {
     }
   }
 
-  static async updateDocumentStatus(
-    req: AuthRequest,
-    res: Response
-  ): Promise<any> {
-    const { documentId } = req.params;
-    const { newStatus } = req.body;
+  // static async updateDocumentStatus(
+  //   req: AuthRequest,
+  //   res: Response
+  // ): Promise<any> {
+  //   const { documentId } = req.params;
+  //   const { newStatus } = req.body;
 
-    try {
-      const document = await DocumentService.updateDocumentStatus(
-        documentId,
-        newStatus
-      );
+  //   try {
+  //     const document = await DocumentService.updateDocumentStatus(
+  //       documentId,
+  //       newStatus
+  //     );
 
-      return res.status(200).json({
-        document,
-      });
-    } catch (error: any) {
-      const statusCode =
-        error instanceof HttpException ? error.statusCode : 500;
-      return res.status(statusCode).json({
-        message: `Error: ${error.message}`,
-      });
-    }
-  }
+  //     return res.status(200).json({
+  //       document,
+  //     });
+  //   } catch (error: any) {
+  //     const statusCode =
+  //       error instanceof HttpException ? error.statusCode : 500;
+  //     return res.status(statusCode).json({
+  //       message: `Error: ${error.message}`,
+  //     });
+  //   }
+  // }
 
   static async getDocumentById(req: AuthRequest, res: Response): Promise<any> {
     const { documentId } = req.params;
@@ -60,22 +60,22 @@ export class DocumentController {
     }
   }
 
-  static async updateAuthorizedSigners(
+  static async saveAndNotifySigners(
     req: AuthRequest,
     res: Response
   ): Promise<any> {
     const { documentId } = req.params;
-    const { authorizedSigners } = req.body;
+    const { signers } = req.body;
 
     try {
-      const signers =
-        await DocumentService.updateAuthorizedSigners(
+      const response =
+        await DocumentService.saveAndNotifySigners(
           documentId,
-          authorizedSigners
+          signers
         );
 
       return res.status(200).json({
-        signers
+        response
       });
     } catch (error: any) {
       const statusCode =

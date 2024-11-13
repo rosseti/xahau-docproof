@@ -6,8 +6,9 @@ import { AppContext } from "@/context/AppContext";
 
 import { useRouter } from "next/navigation";
 
-import PageLoading from "@/components/PageLoader";
-import ApiService, { getDocuments } from "@/services/APIService";
+import PageLoader from "@/components/PageLoader";
+import ApiService from "@/services/APIService";
+import Link from "next/link";
 
 export default function PageList() {
   const { account, isLoading, xumm } = useContext(AppContext);
@@ -24,7 +25,7 @@ export default function PageList() {
 
   useEffect(() => {
     if (!xumm) return;
-    setApiService(ApiService(xumm));  // Passando o objeto Xumm para a lib
+    setApiService(ApiService(xumm));
   }, [xumm]);
 
   useEffect(() => {
@@ -35,15 +36,8 @@ export default function PageList() {
       console.log(documents);
     });
   }, [apiService]);
-  // useEffect(() => {
-  //   getDocuments().then((documents) => {
-  //     if (documents.length == 0) return;
-  //     setDocuments(documents);
-  //     console.log(documents);
-  //   });
-  // }, []);
 
-  if (isLoading) return <PageLoading />;
+  if (isLoading) return <PageLoader />;
 
   return (
     <>
@@ -54,7 +48,6 @@ export default function PageList() {
           Here you can see the list of documents you have created.
         </p>
 
-        {/* {documents && <Table header={headers} body={documents} />} */}
         {documents && (
           <table className="table table-zebra w-full">
             <thead>
@@ -66,7 +59,11 @@ export default function PageList() {
             <tbody>
               {documents.map((document, rowIndex) => (
                 <tr key={rowIndex}>
-                  <td>{document.name}</td>
+                  <td>
+                    <Link href={`/doc/${document._id}/status`}>
+                      {document.name}
+                    </Link>
+                  </td>
                   <td>{document.status}</td>
                 </tr>
               ))}

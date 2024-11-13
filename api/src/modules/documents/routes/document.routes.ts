@@ -23,9 +23,9 @@ const upload = multer({
 export const docRoutes = Router();
 
 docRoutes.get("/list", authenticateJWT, DocumentController.getDocuments);
-docRoutes.put("/:documentId/status", authenticateJWT, DocumentController.updateDocumentStatus);
+// docRoutes.put("/:documentId/status", authenticateJWT, DocumentController.updateDocumentStatus);
 docRoutes.get("/:documentId", authenticateJWT, DocumentController.getDocumentById);
-docRoutes.put("/:documentId/authorized-signers", authenticateJWT, DocumentController.updateAuthorizedSigners);
+docRoutes.put("/:documentId/save-notify-signers", authenticateJWT, DocumentController.saveAndNotifySigners);
 docRoutes.post("/create", [authenticateJWT, upload.single("file")], DocumentController.createDocument);
 
 // authRoutes.get("/me", authenticateJWT, AuthController.me);

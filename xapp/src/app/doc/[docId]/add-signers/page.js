@@ -17,7 +17,7 @@ import { FiArrowRight, FiChevronRight, FiPlus } from "react-icons/fi";
 
 export default function PageAddSigners() {
   const { account, isLoading } = useContext(AppContext);
-  const [authorizedSigners, setAuthorizedSigners] = useState([]);
+  const [signers, setAuthorizedSigners] = useState([]);
   const [isAwaiting, setIsAwaiting] = useState(false);
   const [document, setDocument] = useState({});
   const [apiService, setApiService] = useState(null);
@@ -53,11 +53,11 @@ export default function PageAddSigners() {
   const handleSubmit = async (event) => {
     setIsAwaiting(true);
 
-    console.log("Enviando para:", authorizedSigners);
+    console.log("Enviando para:", signers);
 
     event.preventDefault();
 
-    await apiService.addAuthorizedSigners(docId, authorizedSigners)
+    await apiService.addAuthorizedSigners(docId, signers)
       .then(({ data }) => {
         toast.success("Sent successfully!");
         push(`/doc/${docId}/success`);
@@ -99,7 +99,7 @@ export default function PageAddSigners() {
             </p>
 
             <EmailRecipients
-              emails={authorizedSigners}
+              emails={signers}
               onEmailsChange={handleEmailsChange}
               maxEmails={5}
               className="mb-4"

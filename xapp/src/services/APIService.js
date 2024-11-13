@@ -48,7 +48,7 @@ const ApiService = (xumm) => {
     }
   }
 
-  async function addAuthorizedSigners(documentId, authorizedSigners) {
+  async function addAuthorizedSigners(documentId, signers) {
     try
     {
       const headers = {
@@ -56,9 +56,9 @@ const ApiService = (xumm) => {
       };
       
       const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}/authorized-signers`,
+        `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}/save-notify-signers`,
         {
-          authorizedSigners
+          signers
         },
         {
           headers

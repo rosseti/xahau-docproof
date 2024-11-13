@@ -86,6 +86,11 @@ export default function PageSign() {
         .then((payload) => async () => {
           await xumm.xapp.openSignRequest(payload);
           setSigning(false);
+        })
+        .catch((error) => {
+          console.error(error);
+          toast.error(processError(error));
+          setSigning(false);
         });
 
       // console.log(txHash);

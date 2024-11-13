@@ -36,21 +36,21 @@ export const isOwner = async () => {
 
 export const addDocument = async (
   documentHash,
-  authorizedSigners,
+  signers,
   expirationTime
 ) => {
   const contract = getContract();
 
   const gas = await contract.methods
-    .addDocument(documentHash, authorizedSigners, expirationTime)
+    .addDocument(documentHash, signers, expirationTime)
     .estimateGas();
 
   const gasPrice = await getGasPrice();
 
-  console.log(documentHash, authorizedSigners, expirationTime);
+  console.log(documentHash, signers, expirationTime);
 
   const receipt = await contract.methods
-    .addDocument(documentHash, authorizedSigners, expirationTime)
+    .addDocument(documentHash, signers, expirationTime)
     .send({
       gas,
       gasPrice,
