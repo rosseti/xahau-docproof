@@ -52,15 +52,27 @@ export default function PageSign() {
               },
             ],
           },
-          (eventMessage) => {
+          async (eventMessage) => {
             if ("opened" in eventMessage.data) {
               // Update the UI? The payload was opened.
               console.log("aberto");
             }
+            
+            console.log(eventMessage.data);
+
             if ("signed" in eventMessage.data) {
+
+              const { payload_uuidv4 } = eventMessage.data;
               console.log(eventMessage.data);
-              // The `signed` property is present, true (signed) / false (rejected)
-              console.log("signed");
+
+              const txInfo = await xumm.payload.get(payload_uuidv4);
+              console.log(txInfo.response.dispatched_result);
+
+              if (txInfo.response.dispatched_result === 'tesSUCCESS') {
+                // here we go!
+                // @todo atualizar status da assinatura
+              }
+
               return eventMessage;
             }
           }
