@@ -10,15 +10,15 @@ import "react-toastify/dist/ReactToastify.css";
 import { useParams, useRouter } from "next/navigation";
 
 import PageLoader from "@/components/PageLoader";
+import ApiService from "@/services/APIService";
 import { processError } from "@/utils/solidity";
 import { FileSignature } from "lucide-react";
-import ApiService from "@/services/APIService";
 
 export default function PageSign() {
   const { docId, signerId } = useParams();
 
   const [apiService, setApiService] = useState(null);
-  const { xumm } = useContext(AppContext);
+  const { xumm, connectWallet } = useContext(AppContext);
 
   const [document, setDocument] = useState({});
   const [authorizedSignerCount, setAuthorizedSignerCount] = useState(0);
@@ -67,10 +67,14 @@ export default function PageSign() {
 
               const txInfo = await xumm.payload.get(payload_uuidv4);
               console.log(txInfo.response.dispatched_result);
+              console.log(txInfo.response.txid)
 
               if (txInfo.response.dispatched_result === 'tesSUCCESS') {
-                // here we go!
-                // @todo atualizar status da assinatura
+                const response = await apiService.markDocumentAsSigned(docId, signerId, txInfo.response.txid);
+                console.log(response);
+                toast.success("Document signed successfully!");
+              } else {
+                toast.error(`Error signing document: ${txInfo.response.dispatched_result}`);
               }
 
               return eventMessage;
@@ -96,10 +100,15 @@ export default function PageSign() {
       // console.log(txHash);
       // toast.success("Document signed successfully!");
     } catch (error) {
+      setSigning(false);
       console.error(error);
       toast.error(processError(error));
     }
   };
+
+  useEffect(() => {
+    localStorage.setItem("lastLink", `/sign/${docId}/${signerId}`);
+  }, []);
 
   useEffect(() => {
     if (!xumm) return;
@@ -108,7 +117,7 @@ export default function PageSign() {
 
   useEffect(() => {
     if (!apiService) return;
-    apiService.getDocument(docId).then(({ document }) => {
+    apiService.getDocumentByIdAndSignerId(docId, signerId).then(({ document }) => {
       setDocument(document);
     });
   }, [apiService]);
@@ -118,6 +127,18 @@ export default function PageSign() {
   return (
     <>
       <ToastContainer />
+
+      {!isLoading && !account && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 
+          bg-black bg-opacity-85">
+          <button
+            onClick={connectWallet}
+            className="btn btn-primary shadow-lg"
+          >
+            Sign in to continue
+          </button>
+        </div>
+      )}
 
       {document.hash && (
         <iframe

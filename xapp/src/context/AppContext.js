@@ -27,7 +27,6 @@ export const AppProvider = ({ children }) => {
     const xummReady = () => {
       console.log("XUMM Ready.");
     };
-
     const xummSuccess = async () => {
       {
         xumm.user.account.then((account) => {
@@ -59,7 +58,7 @@ export const AppProvider = ({ children }) => {
     };
   }, [xumm, isLoading]);
 
-  const connectMetaMask = () => {
+  const connectWallet = () => {
     xumm.authorize();
   };
 
@@ -72,7 +71,7 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppContext.Provider
-      value={{ account, connectMetaMask, logout, isLoading, xumm, error, setError }}
+      value={{ account, connectWallet, logout, isLoading, xumm, error, setError }}
     >
       {children}
     </AppContext.Provider>

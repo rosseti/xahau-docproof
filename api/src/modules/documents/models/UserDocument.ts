@@ -19,6 +19,7 @@ export interface IUserDocument extends Document {
   signers: ISigner[];
   expirationTime: Date;
   owner: string;
+  userToken: string;
   status: DocumentStatus;
 }
 
@@ -41,6 +42,7 @@ const UserDocumentSchema: Schema = new Schema({
   signers: { type: [SignerSchema], required: false },
   expirationTime: { type: Date, required: true },
   owner: { type: String, required: true },
+  userToken: { type: String, required: true },
   status: {
     type: String,
     enum: Object.values(DocumentStatus), // Utilizando o enum

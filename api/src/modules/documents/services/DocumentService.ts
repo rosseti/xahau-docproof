@@ -31,9 +31,11 @@ export class DocumentService {
     return documents;
   };
 
-  static updateDocumentStatus = async (
+  static markDocumentAsSigned = async (
     documentId: string,
-    newStatus: DocumentStatus
+    signerId: string,
+    wallet: string,
+    txid: string
   ): Promise<IUserDocument | null> => {
     if (!documentId) {
       throw new BadRequestException("Document ID is required.");
@@ -43,33 +45,27 @@ export class DocumentService {
       throw new BadRequestException("Invalid document ID format.");
     }
 
-    const document = await UserDocument.findById(documentId);
+    const document = await UserDocument.findOne({
+      _id: documentId,
+      signers: { $elemMatch: { _id: signerId } }
+    });
 
     if (!document) {
       throw new HttpException(404, "Document not found.");
     }
 
-    const validTransitions: Record<DocumentStatus, DocumentStatus[]> = {
-      [DocumentStatus.Pending]: [
-        DocumentStatus.Rejected,
-      ],
-      [DocumentStatus.AwaitingSignatures]: [
-        DocumentStatus.PartiallySigned,
-        DocumentStatus.FullySigned,
-      ],
-      [DocumentStatus.PartiallySigned]: [
-        DocumentStatus.FullySigned,
-        DocumentStatus.Rejected,
-      ],
-      [DocumentStatus.FullySigned]: [],
-      [DocumentStatus.Rejected]: [],
-      [DocumentStatus.Archived]: [],
-    };
+    const notification = new NotificationService();
 
-    const currentStatus = document.status;
+    document.signers.forEach((signer) => {
+      if (signer.id === signerId && signer.signed === false) {
+        signer.signed = true;
+        signer.signedAt = new Date();
+        signer.wallet = wallet;
+        signer.txHash = txid;
 
-    // if (validTransitions[currentStatus]?.includes(newStatus)) {
-    document.status = newStatus;
+        notification.notifyPushNotification(document.userToken, "Document Signed", `Your document has been signed by ${signer.email}.`);
+      }
+    });
 
     await document.save();
 
@@ -82,6 +78,49 @@ export class DocumentService {
     }
 
     const document = await UserDocument.findById(documentId);
+    if (!document) {
+      throw new HttpException(404, "Document not found");
+    }
+
+    const {
+      id,
+      hash,
+      name,
+      size,
+      extension,
+      owner,
+      status,
+      expirationTime,
+      signers,
+    } = document;
+
+    return {
+      id,
+      hash,
+      name,
+      size,
+      extension,
+      owner,
+      status,
+      expirationTime,
+      signers,
+    };
+  };
+
+  static getDocumentByIdAndSignerId = async (documentId: string, signerId: string): Promise<any> => {
+    if (!mongoose.Types.ObjectId.isValid(documentId)) {
+      throw new BadRequestException("Invalid document ID format.");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(signerId)) {
+      throw new BadRequestException("Invalid signer ID format.");
+    }
+
+    const document = await UserDocument.findOne({
+      _id: documentId,
+      signers: { $elemMatch: { _id: signerId } }
+    });
+
     if (!document) {
       throw new HttpException(404, "Document not found");
     }
@@ -128,6 +167,7 @@ export class DocumentService {
       throw new NotFoundException("Document not found");
     }
 
+    document.signers = [];
     for (const email of signers) {
       const signer = new Signer({
         email,
@@ -175,6 +215,7 @@ export class DocumentService {
       signers: req.body.signers || [],
       expirationTime,
       owner: req.user.sub,
+      userToken: req.user.usertoken_uuidv4,
     });
 
     await newDocument.save();

@@ -18,35 +18,55 @@ export class DocumentController {
     }
   }
 
-  // static async updateDocumentStatus(
-  //   req: AuthRequest,
-  //   res: Response
-  // ): Promise<any> {
-  //   const { documentId } = req.params;
-  //   const { newStatus } = req.body;
+  static async markDocumentAsSigned(
+    req: AuthRequest,
+    res: Response
+  ): Promise<any> {
+    const wallet = req.user!.sub;
+    const { documentId, signerId } = req.params;
+    const { txid } = req.body;
 
-  //   try {
-  //     const document = await DocumentService.updateDocumentStatus(
-  //       documentId,
-  //       newStatus
-  //     );
+    try {
+      const document = await DocumentService.markDocumentAsSigned(
+        documentId,
+        signerId,
+        wallet,
+        txid
+      );
 
-  //     return res.status(200).json({
-  //       document,
-  //     });
-  //   } catch (error: any) {
-  //     const statusCode =
-  //       error instanceof HttpException ? error.statusCode : 500;
-  //     return res.status(statusCode).json({
-  //       message: `Error: ${error.message}`,
-  //     });
-  //   }
-  // }
+      return res.status(200).json({
+        document,
+      });
+    } catch (error: any) {
+      const statusCode =
+        error instanceof HttpException ? error.statusCode : 500;
+      return res.status(statusCode).json({
+        message: `Error: ${error.message}`,
+      });
+    }
+  }
 
   static async getDocumentById(req: AuthRequest, res: Response): Promise<any> {
     const { documentId } = req.params;
     try {
       const document = await DocumentService.getDocumentById(documentId);
+
+      return res.status(200).json({
+        document,
+      });
+    } catch (error: any) {
+      const statusCode =
+        error instanceof HttpException ? error.statusCode : 500;
+      return res.status(statusCode).json({
+        message: `Error: ${error.message}`,
+      });
+    }
+  }
+
+  static async getDocumentByIdAndSignerId(req: Request, res: Response): Promise<any> {
+    const { documentId, signerId } = req.params;
+    try {
+      const document = await DocumentService.getDocumentByIdAndSignerId(documentId, signerId);
 
       return res.status(200).json({
         document,

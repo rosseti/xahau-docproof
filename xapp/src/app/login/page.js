@@ -1,6 +1,6 @@
 "use client";
 
-import MetaMaskLogin from "@/components/MetaMaskLogin";
+import XamanWalletLogin from "@/components/XamanWalletLogin";
 import PageLoader from "@/components/PageLoader";
 import XrplSidechainButton from "@/components/XrplSidechainButton";
 import { AppContext } from "@/context/AppContext";
@@ -14,12 +14,20 @@ import { toast } from "react-toastify";
 
 const LoginPage = () => {
   const router = useRouter();
-  const { account, isLoading, error, setError } = useContext(AppContext);
+  const { account, isLoading, error, setError, lastLink, setLastLink } = useContext(AppContext);
 
   useEffect(() => {
     if (account) {
       toast.success("You are now logged in.");
-      router.push("/doc/list");
+
+      const lastLink = localStorage.getItem("lastLink");
+
+      if (lastLink) {
+        localStorage.removeItem("lastLink");
+        router.push(lastLink);
+      } else {
+        router.push("/doc/list");
+      }
     }
 
     if (error) {
@@ -57,7 +65,7 @@ const LoginPage = () => {
 
           <div className="mb-8">
             <div className="flex flex-col">
-              <MetaMaskLogin />
+              <XamanWalletLogin />
             </div>
           </div>
 
