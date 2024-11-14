@@ -35,7 +35,9 @@ export class NotificationService {
       //const emailBody = `Hello ${signer.email}, please review and sign the document: <a href="${signingLink}">${signingLink}</a>`;
       const emailBody = await this.emailService.loadTemplate('review_and_sign.html',        
         {
+          app_url: process.env.APP_URL,
           email: signer.email,
+          doc_name: document.name,
           link: signingLink,
           signers: normalizedSigners
       });

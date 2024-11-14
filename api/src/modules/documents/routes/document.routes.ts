@@ -22,6 +22,8 @@ const upload = multer({
 
 export const docRoutes = Router();
 
+docRoutes.get("/reviewAndSign", DocumentController.reviewAndSign);
+
 docRoutes.get("/list", authenticateJWT, DocumentController.getDocuments);
 
 docRoutes.put("/:documentId/save-notify-signers", authenticateJWT, DocumentController.saveAndNotifySigners);
