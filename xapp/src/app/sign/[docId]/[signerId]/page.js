@@ -80,36 +80,31 @@ export default function PageSign() {
 
           return resolved;
         })
-        .then(async (payload) => {
-          const { payload_uuidv4 } = payload.data;
-          console.log('payload: ', payload);
+        .then((payload) => {
+          const response = payload.payload.response;
 
-          const txInfo = await xumm.payload.get(payload_uuidv4);
-          console.log(txInfo.response.dispatched_result);
-          console.log(txInfo.response.txid)
+          console.log(response.dispatched_result);
+          console.log(response.txid)
 
-          if (txInfo.response.dispatched_result === 'tesSUCCESS') {
-            const response = await apiService.markDocumentAsSigned(docId, signerId, txInfo.response.txid);
-            console.log(response);
-            toast.success("Document signed successfully!");
+          if (response.dispatched_result === 'tesSUCCESS') {
+            apiService.markDocumentAsSigned(docId, signerId, response.txid)
+              .then((response) => {
+                console.log(response);
+                toast.success("Document signed successfully!");
+              });
           } else {
-            toast.error(`Error signing document: ${txInfo.response.dispatched_result}`);
+            toast.error(`Error signing document: ${response.dispatched_result}`);
           }
-          console.log(payload);
-          // await xumm.xapp.openSignRequest(payload);
+
           setSigning(false);
         })
         .catch((error) => {
-          console.error(error);
           toast.error(processError(error));
           setSigning(false);
         });
 
-      // console.log(txHash);
-      // toast.success("Document signed successfully!");
     } catch (error) {
       setSigning(false);
-      // console.error(error);
       toast.error(processError(error));
     }
   };
