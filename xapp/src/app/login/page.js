@@ -2,7 +2,6 @@
 
 import XamanWalletLogin from "@/components/XamanWalletLogin";
 import PageLoader from "@/components/PageLoader";
-import XrplSidechainButton from "@/components/XrplSidechainButton";
 import { AppContext } from "@/context/AppContext";
 import { Lock, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -77,10 +76,6 @@ const LoginPage = () => {
             <p>Your private keys never leave your wallet</p>
           </div>
         </div>
-
-        {/* <div className="text-center text-sm opacity-80">
-          <XrplSidechainButton />
-        </div> */}
       </div>
     </div>
   );

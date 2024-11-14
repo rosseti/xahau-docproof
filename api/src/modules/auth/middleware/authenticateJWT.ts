@@ -21,8 +21,6 @@ export const authenticateJWT = async (req: AuthRequest, res: Response, next: Nex
   if (type !== "Bearer") {
     return res.status(401).json({ error: "Invalid token type" });
   }
-  const user = await jwt.verify(token, pubKey);
-  console.log(user);
 
   try {
     const user = await jwt.verify(token, pubKey);
