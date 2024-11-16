@@ -41,7 +41,7 @@ export default function PageList() {
 
   return (
     <>
-      <div className="container mx-auto pt-10 px-4 w-1/2">
+      <div className="container mx-auto pt-10 px-4 w-full lg:w-1/2">
         <h1 className="text-4xl font-bold pb-4">My documents</h1>
 
         <p className="mb-4">
@@ -52,8 +52,12 @@ export default function PageList() {
           <table className="table w-full">
             <thead>
               <tr>
-                <th className="rounded-tl-lg bg-gray-200 text-gray-700">Name</th>
-                <th className="rounded-tr-lg bg-gray-200 text-gray-700">Status</th>
+                <th className="rounded-tl-lg bg-gray-200 text-gray-700">
+                  Name
+                </th>
+                <th className="rounded-tr-lg bg-gray-200 text-gray-700">
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody>

@@ -62,7 +62,7 @@ export default function PageStatus() {
               width={150}
               className="mb-4"
             />
-            <button className="btn btn-default mb-4 w-full">
+            <button className="btn btn-default mb-4 w-full" onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/file/${document.hash}`)}>
               <FiEye /> View Document
             </button>
 
@@ -71,7 +71,7 @@ export default function PageStatus() {
             </button>
           </div>
           <div className="p-4">
-            <h2 className="text-2xl font-bold pb-4">{document.name}</h2>
+            <h2 className="text-2xl font-bold pb-4 text-wrap">{document.name}</h2>
 
             <div className="grid grid-cols-4 gap-2 mb-4">
               <ProgressBar progress={100} description="Document uploaded" />

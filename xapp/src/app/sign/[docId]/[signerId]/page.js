@@ -13,6 +13,7 @@ import PageLoader from "@/components/PageLoader";
 import ApiService from "@/services/APIService";
 import { processError } from "@/utils/solidity";
 import { FileSignature } from "lucide-react";
+import { FiCheckCircle } from "react-icons/fi";
 
 export default function PageSign() {
   const { docId, signerId } = useParams();
@@ -53,23 +54,12 @@ export default function PageSign() {
             ],
           },
           (eventMessage) => {
-            console.log('eventMessage: ', eventMessage);
-            if ("opened" in eventMessage.data) {
-              toast.info("Payload opened");
-              // Update the UI? The payload was opened.
-              console.log("aberto");
-            }
-            
-            console.log(eventMessage.data);
-
             if ("pre_signed" in eventMessage.data) {
               toast.info("Pre-signed");
             }
 
             if ("signed" in eventMessage.data) {
               toast.info("Signed");
-              // update the UI?
-
               return eventMessage;
             }
           }
@@ -84,16 +74,20 @@ export default function PageSign() {
           const response = payload.payload.response;
 
           console.log(response.dispatched_result);
-          console.log(response.txid)
+          console.log(response.txid);
 
-          if (response.dispatched_result === 'tesSUCCESS') {
-            apiService.markDocumentAsSigned(docId, signerId, response.txid)
+          if (response.dispatched_result === "tesSUCCESS") {
+            apiService
+              .markDocumentAsSigned(docId, signerId, response.txid)
               .then((response) => {
                 console.log(response);
+                setAlreadySigned(true);
                 toast.success("Document signed successfully!");
               });
           } else {
-            toast.error(`Error signing document: ${response.dispatched_result}`);
+            toast.error(
+              `Error signing document: ${response.dispatched_result}`
+            );
           }
 
           setSigning(false);
@@ -102,7 +96,6 @@ export default function PageSign() {
           toast.error(processError(error));
           setSigning(false);
         });
-
     } catch (error) {
       setSigning(false);
       toast.error(processError(error));
@@ -116,9 +109,16 @@ export default function PageSign() {
 
   useEffect(() => {
     if (!apiService) return;
-    apiService.getDocumentByIdAndSignerId(docId, signerId).then(({ document }) => {
-      setDocument(document);
-    });
+    apiService
+      .getDocumentByIdAndSignerId(docId, signerId)
+      .then(({ document }) => {
+        setDocument(document);
+        document.signers.map((signer) => {
+          if (signer.signed) {
+            setAlreadySigned(true);
+          }
+        });
+      });
   }, [apiService]);
 
   if (isLoading) return <PageLoader />;
@@ -128,12 +128,11 @@ export default function PageSign() {
       <ToastContainer />
 
       {!isLoading && !account && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 
-          bg-black bg-opacity-85">
-          <button
-            onClick={connectWallet}
-            className="btn btn-primary shadow-lg"
-          >
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 
+          bg-black bg-opacity-85"
+        >
+          <button onClick={connectWallet} className="btn btn-primary shadow-lg">
             Sign in to continue
           </button>
         </div>
@@ -149,15 +148,24 @@ export default function PageSign() {
       )}
 
       <div className="fixed bottom-4 right-10 z-10">
-        <button
-          onClick={signDocumentClickHandler}
-          className="btn btn-primary shadow-lg"
-          disabled={isSigning || isAlreadySigned}
-        >
-          {isSigning && <span className="loading loading-spinner"></span>}
-          {!isSigning && <FileSignature />}
-          Sign document
-        </button>
+        {!isAlreadySigned && (
+          <button
+            onClick={signDocumentClickHandler}
+            className="btn btn-primary shadow-lg"
+            disabled={isSigning || isAlreadySigned}
+          >
+            {isSigning && <span className="loading loading-spinner"></span>}
+            {!isSigning && <FileSignature />}
+            Sign document
+          </button>
+        )}
+
+        {isAlreadySigned && (
+          <button className="btn btn-success shadow-lg">
+            <FiCheckCircle />
+            Document signed
+          </button>
+        )}
       </div>
     </>
   );

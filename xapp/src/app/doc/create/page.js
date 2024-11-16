@@ -66,7 +66,7 @@ export default function PageCreate() {
 
   return (
     <>
-      <div className="container mx-auto pt-10 px-4 w-1/2">
+      <div className="container mx-auto pt-10 px-4 w-full lg:w-1/2">
         
         <h1 className="text-4xl font-bold pb-4">
           Send your document
