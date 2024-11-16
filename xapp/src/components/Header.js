@@ -39,7 +39,7 @@ const Header = () => {
                 </div>
                 
                 <a className="btn btn-ghost normal-case text-xl">
-                    <img src="/logo-xahau-docproof-dark.svg" alt="Xaman Logo" width={150} />
+                    <img src="/app-logo-horizontal-dark.svg" alt="Xaman Logo" width={160} />
                 </a>
             </div>
 

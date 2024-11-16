@@ -110,10 +110,6 @@ export default function PageSign() {
   };
 
   useEffect(() => {
-    localStorage.setItem("lastLink", `/sign/${docId}/${signerId}`);
-  }, []);
-
-  useEffect(() => {
     if (!xumm) return;
     setApiService(ApiService(xumm));
   }, [xumm]);

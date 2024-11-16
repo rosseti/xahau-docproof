@@ -1,39 +1,27 @@
 "use client";
 
-import XamanWalletLogin from "@/components/XamanWalletLogin";
 import PageLoader from "@/components/PageLoader";
+import XamanWalletLogin from "@/components/XamanWalletLogin";
 import { AppContext } from "@/context/AppContext";
-import { Lock, ShieldCheck } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useContext, useEffect } from "react";
 import { toast } from "react-toastify";
-// import { Xumm } from "xumm";
-
-// const xumm = new Xumm(process.env.NEXT_PUBLIC_XAMAN_API_KEY);
 
 const LoginPage = () => {
   const router = useRouter();
-  const { account, isLoading, error, setError, lastLink, setLastLink } = useContext(AppContext);
+  const { account, isLoading, error, setError } = useContext(AppContext);
 
   useEffect(() => {
     if (account) {
       toast.success("You are now logged in.");
-
-      const lastLink = localStorage.getItem("lastLink");
-
-      if (lastLink) {
-        localStorage.removeItem("lastLink");
-        router.push(lastLink);
-      } else {
-        router.push("/doc/list");
-      }
+      router.push("/doc/list");
     }
 
     if (error) {
       toast.error(error);
       setError(null);
     }
-
   }, [account, error]);
 
   if (isLoading) return <PageLoader />;
@@ -49,10 +37,9 @@ const LoginPage = () => {
       <div className="relative z-10 w-full max-w-lg p-8">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-white/20 mb-8">
           <div className="flex flex-col items-center mb-8">
-            {/* <ShieldCheck className="w-16 h-16 text-blue-400 mt-4" /> */}
             <h1 className="text-3xl font-bold text-white mb-2">
               <img
-                src="/logo-xahau-docproof.svg"
+                src="/app-logo-white.svg"
                 alt="Xahau | DocProof"
                 style={{ width: "300px", height: "150px" }}
               />

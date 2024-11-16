@@ -49,11 +49,11 @@ export default function PageList() {
         </p>
 
         {documents && (
-          <table className="table table-zebra w-full">
+          <table className="table w-full">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Status</th>
+                <th className="rounded-tl-lg bg-gray-200 text-gray-700">Name</th>
+                <th className="rounded-tr-lg bg-gray-200 text-gray-700">Status</th>
               </tr>
             </thead>
             <tbody>
