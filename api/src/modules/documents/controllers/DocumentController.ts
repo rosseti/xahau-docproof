@@ -3,6 +3,7 @@ import { AuthRequest } from "@/shared/types/AuthRequest";
 import { Request, Response } from "express";
 import { DocumentService } from "../services/DocumentService";
 import { EmailService } from "@/modules/email/services/EmailService";
+import QrcodeService from "../services/QrcodeService";
 
 export class DocumentController {
   static async getDocuments(req: AuthRequest, res: Response): Promise<any> {
@@ -36,7 +37,7 @@ export class DocumentController {
       );
 
       return res.status(200).json({
-        document,
+        status: "ok",
       });
     } catch (error: any) {
       const statusCode =
@@ -140,21 +141,68 @@ export class DocumentController {
     const signingLink = `${process.env.APP_URL}sign/xyz/zzz`;
     const emailSubject = `Review and Sign: doc.pdf`;
     const normalizedSigners = [
-      { email: 'john@doe.com', signed: false },
-      { email: 'diana@doe.com', signed: false } 
-    ]
+      { email: "john@doe.com", signed: false },
+      { email: "diana@doe.com", signed: false },
+    ];
     const emailService = new EmailService();
-    const emailBody = await emailService.loadTemplate(
-      "review_and_sign.html",
-      {
-        email: "signer@mail.com",
-        link: signingLink,
-        doc_name: 'doc.pdf',
-        signers: normalizedSigners,
-        subject: emailSubject,
-        app_url: process.env.APP_URL,
-      }
+    const emailBody = await emailService.loadTemplate("review_and_sign.html", {
+      email: "signer@mail.com",
+      link: signingLink,
+      doc_name: "doc.pdf",
+      signers: normalizedSigners,
+      subject: emailSubject,
+      app_url: process.env.APP_URL,
+    });
+
+    return res.status(200).send(emailBody);
+  }
+
+  static async generatePDFProof(req: any, res: any): Promise<any> {
+    const signingLink = `${process.env.APP_URL}sign/xyz/zzz`;
+    const emailSubject = `Review and Sign: doc.pdf`;
+
+    const txHash1 =
+      "F9E0155050D5C1B02BB7CEBFE603E15D01674F48E059C28560E0F1D25A254EFD";
+    const txHash2 =
+      "2A4A4DD2DFA89671980318E09135DF776EFF4270835D32D29A6D3ED06D9CE430";
+    const qrcode1 = await QrcodeService.generateQRCode(
+      `${process.env.BLOCKCHAIN_EXPLORER}explorer/${txHash1}`
     );
+    const qrcode2 = await QrcodeService.generateQRCode(
+      `${process.env.BLOCKCHAIN_EXPLORER}explorer/${txHash2}`
+    );
+
+    const normalizedSigners = [
+      {
+        email: "john@doe.com",
+        wallet: "rM21rCMcTnifB7KyiYqBUrEdxkeecAeZdw",
+        signed: true,
+        qrcode: qrcode1,
+        txHash: txHash1,
+        signedAt: new Date(),
+      },
+      {
+        email: "diana@doe.com",
+        wallet: "rG8GgCWM48j8wsjzEbnMhS91ar8V9h8QFS",
+        signed: true,
+        qrcode: qrcode2,
+        txHash: txHash2,
+        signedAt: new Date(),
+      },
+    ];
+    const emailService = new EmailService();
+    const emailBody = await emailService.loadTemplate("doc_proof.html", {
+      email: "signer@mail.com",
+      link: signingLink,
+      documentId: "673b047e266d6ee66db5c013",
+      documentHash:
+        "605f3e53913765bd9ed7d2a299dab30ed30803be287b90da96489d8f2c171a73",
+      createdAt: new Date(),
+      signers: normalizedSigners,
+      subject: emailSubject,
+      app_url: process.env.APP_URL,
+      generationTimestamp: new Date(),
+    });
 
     return res.status(200).send(emailBody);
   }

@@ -21,6 +21,7 @@ export interface IUserDocument extends Document {
   owner: string;
   userToken: string;
   status: DocumentStatus;
+  pageCount: number;
 }
 
 const SignerSchema: Schema = new Schema({
@@ -48,7 +49,8 @@ const UserDocumentSchema: Schema = new Schema({
     enum: Object.values(DocumentStatus), // Utilizando o enum
     required: false,
     default: DocumentStatus.Pending
-  }
+  },
+  pageCount: { type: Number, required: false, default: 0 },
 });
 
 UserDocumentSchema.pre<IUserDocument>('save', function (next) {

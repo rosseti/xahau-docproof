@@ -23,6 +23,8 @@ const upload = multer({
 export const docRoutes = Router();
 
 docRoutes.get("/reviewAndSign", DocumentController.reviewAndSign);
+docRoutes.get("/generatePDFProof", DocumentController.generatePDFProof);
+
 
 docRoutes.get("/list", authenticateJWT, DocumentController.getDocuments);
 

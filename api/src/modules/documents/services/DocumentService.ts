@@ -13,6 +13,7 @@ import fs from "fs";
 import mongoose from "mongoose";
 import path from "path";
 import { NotificationService } from "./NotificationService";
+import { PDFDocument } from "pdf-lib";
 
 export class DocumentService {
   static getDocuments = async (wallet: string): Promise<IUserDocument[]> => {
@@ -47,13 +48,14 @@ export class DocumentService {
 
     const document = await UserDocument.findOne({
       _id: documentId,
-      signers: { $elemMatch: { _id: signerId } }
+      signers: { $elemMatch: { _id: signerId } },
     });
 
     if (!document) {
       throw new HttpException(404, "Document not found.");
     }
 
+    let hasSigned = false;
     const notification = new NotificationService();
 
     document.signers.forEach((signer) => {
@@ -63,9 +65,24 @@ export class DocumentService {
         signer.wallet = wallet;
         signer.txHash = txid;
 
-        notification.notifyPushNotification(document.userToken, "Document Signed", `Your document has been signed by ${signer.email}.`);
+        hasSigned = true;
+
+        notification.notifyPushNotification(
+          document.userToken,
+          "Document Signed",
+          `Your document has been signed by ${signer.email}.`
+        );
       }
     });
+
+    const totalSigners = document.signers.length;
+    const totalSigned = document.signers.filter((signer) => signer.signed).length;
+
+    if (totalSigners === totalSigned) {
+      document.status = DocumentStatus.FullySigned;
+    } else if (totalSigners > totalSigned && hasSigned) {
+      document.status = DocumentStatus.PartiallySigned;
+    }
 
     await document.save();
 
@@ -92,6 +109,7 @@ export class DocumentService {
       status,
       expirationTime,
       signers,
+      pageCount
     } = document;
 
     return {
@@ -104,10 +122,14 @@ export class DocumentService {
       status,
       expirationTime,
       signers,
+      pageCount
     };
   };
 
-  static getDocumentByIdAndSignerId = async (documentId: string, signerId: string): Promise<any> => {
+  static getDocumentByIdAndSignerId = async (
+    documentId: string,
+    signerId: string
+  ): Promise<any> => {
     if (!mongoose.Types.ObjectId.isValid(documentId)) {
       throw new BadRequestException("Invalid document ID format.");
     }
@@ -118,7 +140,7 @@ export class DocumentService {
 
     const document = await UserDocument.findOne({
       _id: documentId,
-      signers: { $elemMatch: { _id: signerId } }
+      signers: { $elemMatch: { _id: signerId } },
     });
 
     if (!document) {
@@ -133,9 +155,10 @@ export class DocumentService {
       extension,
       owner,
       status,
-      expirationTime,
-      signers,
+      expirationTime
     } = document;
+
+    const signers = document.signers.filter((signer) => signer.id === signerId);
 
     return {
       id,
@@ -207,6 +230,8 @@ export class DocumentService {
       "latin1"
     ).toString("utf8");
 
+    const pageCount = await this.getDocumentPageCount(filePath);
+
     const newDocument = new UserDocument({
       hash: fileHash,
       name: originalFilename,
@@ -216,10 +241,21 @@ export class DocumentService {
       expirationTime,
       owner: req.user.sub,
       userToken: req.user.usertoken_uuidv4,
+      pageCount
     });
 
     await newDocument.save();
 
     return newDocument;
+  };
+
+  static getDocumentPageCount = async (pdfPath: string) => {
+    const pdfBytes = fs.readFileSync(pdfPath);
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+
+    const pageCount = pdfDoc.getPageCount();
+
+    console.log(`PDF has ${pageCount} pages.`);
+    return pageCount;
   };
 }

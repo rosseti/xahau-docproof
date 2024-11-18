@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Document Proof</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        .document-info {
+            margin: 20px 0;
+        }
+        .content {
+            margin: 30px 0;
+        }
+        .signatures {
+            margin-top: 40px;
+        }
+        .signature-block {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+        .info-container {
+            display: inline-block;
+        }
+        .qr-container {
+            display: inline-block;
+            text-align: center;
+            margin: 10px;
+        }
+        .qr-placeholder {
+            width: 200px;
+            height: 200px;
+            border: 1px dashed #999;
+            margin: 10px auto;
+        }
+        .hash-info {
+            font-family: monospace;
+            word-break: break-all;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 14px;
+        }
+        @page {
+            margin: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Signature Proof</h1>
+        <p>Digital Certificate with Blockchain Validation</p>
+    </div>
+
+    <div class="document-info">
+        <h2>Document Information</h2>
+        <p><strong>Document ID:</strong> {{documentId}}</p>
+        <p><strong>Document Hash:</strong> {{documentHash}}</p>
+        <p><strong>Created at:</strong> {{createdAt}}</p>
+    </div>
+
+    <!-- <div class="content">
+        <h2>Conteúdo do Documento</h2>
+        <div>
+            {{documentContent}}
+        </div>
+    </div> -->
+
+    <div class="signatures">
+        <h2>Signatures</h2>
+        {{#each signers}}
+        <div class="signature-block">
+            <h3>Signer {{add @index 1}}</h3>
+
+            <table width="100%">
+                <tr>
+                    <td width="50%" rowspan="3" align="right">
+                        <div class="qr-container">
+                            <div class="qr-placeholder">
+                                <img src="{{ qrcode }}" />
+                            </div>
+                            <div class="hash-info">
+                                Hash: {{txHash}}
+                            </div>
+                        </div>
+                    </td>
+                    <td valign="top">
+                        <div class="info-container">
+                            <p><strong>E-mail:</strong> {{email}}</p>
+                            <p><strong>Wallet:</strong> {{wallet}}</p>
+                            <p><strong>Signed at:</strong> <span class="timestamp">{{signedAt}}</span></p>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        {{/each}}
+    </div>
+
+    <footer style="margin-top: 40px; text-align: center; font-size: 12px;">
+        <p>This document has been digitally signed and its authenticity can be verified using the QR codes above.</p>
+        <p>Document generation date: {{generationTimestamp}}</p>
+    </footer>
+</body>
+</html>

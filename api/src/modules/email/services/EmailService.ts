@@ -2,7 +2,7 @@ const nodemailer = require("nodemailer");
 import Handlebars from "handlebars";
 import fs from "fs";
 import * as path from 'path';
-
+const helpers = require('handlebars-helpers');
 
 export class EmailService {
   private readonly transporter: any;
@@ -20,6 +20,7 @@ export class EmailService {
   }
 
   async loadTemplate(templatePath: string, variables: any): Promise<string> {
+    helpers.math({ handlebars: Handlebars });
     const absolutePath = path.join(__dirname, '../templates/', templatePath);
     const source = fs.readFileSync(absolutePath, "utf8");
     const template = Handlebars.compile(source);

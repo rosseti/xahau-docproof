@@ -19,7 +19,9 @@ import {
   FiCheckCircle,
   FiDownload,
   FiEye,
+  FiFile,
   FiLoader,
+  FiUsers,
 } from "react-icons/fi";
 
 export default function PageStatus() {
@@ -32,6 +34,7 @@ export default function PageStatus() {
 
   const [totalSigned, setTotalSigned] = useState(0);
   const [totalSigners, setTotalSigners] = useState(0);
+  const [pageCount, setPageCount] = useState(0);
 
   const { account, isLoading } = useContext(AppContext);
   const router = useRouter();
@@ -47,6 +50,7 @@ export default function PageStatus() {
       setDocument(document);
       setTotalSigned(document.signers.filter((s) => s.signed).length);
       setTotalSigners(document.signers.length);
+      setPageCount(document.pageCount);
     });
   }, [apiService]);
 
@@ -56,22 +60,53 @@ export default function PageStatus() {
     <>
       <div className="container mx-auto pt-10 px-4 w-full lg:w-1/2">
         <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-4 ">
-          <div className="p-4 flex flex-col items-center align-center">
+          <div className="p-4 flex flex-col items-center align-center text-gray-400">
             <img
               src="/images/app/pdf-placeholder.png"
               width={150}
               className="mb-4"
             />
-            <button className="btn btn-default mb-4 w-full" onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/file/${document.hash}`)}>
+
+            <div className="pb-2 flex flex-row items-center text-xs">
+              <FiUsers className="mr-2" />
+              <span>
+                {totalSigners} {`signer${totalSigners > 1 ? "s" : ""}`}
+              </span>
+            </div>
+
+            <div className="pb-4 flex flex-row items-center text-xs">
+              <FiFile className="mr-2" />
+              <span>
+                {pageCount} {`page${pageCount > 1 ? "s" : ""}`}
+              </span>
+            </div>
+
+            <button
+              className="btn btn-default mb-4 w-full"
+              onClick={() =>
+                window.open(
+                  `${process.env.NEXT_PUBLIC_API_URL}/file/${document.hash}`
+                )
+              }
+            >
               <FiEye /> View Document
             </button>
 
-            <button className="btn btn-primary w-full">
-              <FiDownload /> Signature Proof
-            </button>
+            {document.status == "Fully Signed" && (
+              <button className="btn btn-primary w-full">
+                <FiDownload /> Signature Proof
+              </button>
+            )}
           </div>
           <div className="p-4">
-            <h2 className="text-2xl font-bold pb-4 text-wrap">{document.name}</h2>
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold text-wrap">{document.name}</h2>
+              {document.status == "Fully Signed" && (
+                <div className="text-success font-bold text-xs">
+                  Signing completed
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-4 gap-2 mb-4">
               <ProgressBar progress={100} description="Document uploaded" />
@@ -80,7 +115,7 @@ export default function PageStatus() {
                 description={
                   document.signers?.length > 0
                     ? "Sent to participants"
-                    : "Waiting to send"
+                    : "Add signers"
                 }
               />
               <ProgressBar
