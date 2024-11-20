@@ -147,6 +147,8 @@ export class DocumentService {
       throw new HttpException(404, "Document not found");
     }
 
+    const idHash = crypto.createHash("sha256").update(documentId).digest("hex").toUpperCase();
+
     const {
       id,
       hash,
@@ -170,6 +172,7 @@ export class DocumentService {
       status,
       expirationTime,
       signers,
+      idHash
     };
   };
 

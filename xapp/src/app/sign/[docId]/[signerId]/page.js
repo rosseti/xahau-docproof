@@ -37,22 +37,31 @@ export default function PageSign() {
     try {
       const networkId = await xumm.user.networkId;
 
+      const txjson = {
+        TransactionType: "Invoke",
+        Destination: "rsARu8NWSKAp1FvRXx7wXfkYMFuAVhnQTK",
+        NetworkID: networkId,
+        HookParameters: [
+          {
+            HookParameter: {
+              HookParameterName: "446F6348617368", // DocHash
+              HookParameterValue: document.hash,
+            },
+          },
+          {
+            HookParameter: {
+              HookParameterName: "446F634964", // DocId
+              HookParameterValue: document.idHash,
+            },
+          },
+        ],
+      };
+
+      console.log(txjson);
+
       await xumm.payload
         .createAndSubscribe(
-          {
-            TransactionType: "Invoke",
-            Destination: "rsARu8NWSKAp1FvRXx7wXfkYMFuAVhnQTK",
-            NetworkID: networkId,
-            Memos: [
-              {
-                Memo: {
-                  MemoData: document.hash,
-                  MemoFormat: "746578742F686578", // text/hex
-                  MemoType: "736861323536", // sha256
-                },
-              },
-            ],
-          },
+          txjson,
           (eventMessage) => {
             if ("pre_signed" in eventMessage.data) {
               toast.info("Pre-signed");
@@ -98,6 +107,7 @@ export default function PageSign() {
         });
     } catch (error) {
       setSigning(false);
+      console.error(error);
       toast.error(processError(error));
     }
   };
