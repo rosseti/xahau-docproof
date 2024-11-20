@@ -109,7 +109,8 @@ export class DocumentService {
       status,
       expirationTime,
       signers,
-      pageCount
+      pageCount,
+      createdAt
     } = document;
 
     return {
@@ -122,7 +123,8 @@ export class DocumentService {
       status,
       expirationTime,
       signers,
-      pageCount
+      pageCount,
+      createdAt
     };
   };
 

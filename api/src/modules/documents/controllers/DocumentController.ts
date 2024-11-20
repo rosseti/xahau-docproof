@@ -4,6 +4,7 @@ import { Request, Response } from "express";
 import { DocumentService } from "../services/DocumentService";
 import { EmailService } from "@/modules/email/services/EmailService";
 import QrcodeService from "../services/QrcodeService";
+import DIDCreator from "@/modules/did/creators/DIDCreator";
 
 export class DocumentController {
   static async getDocuments(req: AuthRequest, res: Response): Promise<any> {
@@ -165,11 +166,17 @@ export class DocumentController {
       "F9E0155050D5C1B02BB7CEBFE603E15D01674F48E059C28560E0F1D25A254EFD";
     const txHash2 =
       "2A4A4DD2DFA89671980318E09135DF776EFF4270835D32D29A6D3ED06D9CE430";
+    
+    const didCreator = new DIDCreator();
+    
+    const did1 = didCreator.createDID(txHash1);
+    const did2 = didCreator.createDID(txHash2);
+
     const qrcode1 = await QrcodeService.generateQRCode(
-      `${process.env.BLOCKCHAIN_EXPLORER}explorer/${txHash1}`
+      `${process.env.APP_URL}did/${did1}`
     );
     const qrcode2 = await QrcodeService.generateQRCode(
-      `${process.env.BLOCKCHAIN_EXPLORER}explorer/${txHash2}`
+      `${process.env.APP_URL}did/${did2}`
     );
 
     const normalizedSigners = [
@@ -180,6 +187,7 @@ export class DocumentController {
         qrcode: qrcode1,
         txHash: txHash1,
         signedAt: new Date(),
+        did: did1
       },
       {
         email: "diana@doe.com",
@@ -188,6 +196,7 @@ export class DocumentController {
         qrcode: qrcode2,
         txHash: txHash2,
         signedAt: new Date(),
+        did: did2
       },
     ];
     const emailService = new EmailService();

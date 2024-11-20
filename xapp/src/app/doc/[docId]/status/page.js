@@ -93,7 +93,7 @@ export default function PageStatus() {
             </button>
 
             {document.status == "Fully Signed" && (
-              <button className="btn btn-primary w-full">
+              <button onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/proof/${docId}`)} className="btn btn-primary w-full">
                 <FiDownload /> Signature Proof
               </button>
             )}

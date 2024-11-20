@@ -8,6 +8,13 @@
             font-family: Arial, sans-serif;
             line-height: 1.6;
             margin: 40px;
+            font-size: 11px;
+        }
+        h1 {
+          font-size: 20px; 
+        }
+        p, span {
+          font-size: 8px; 
         }
         .header {
             text-align: center;
@@ -22,7 +29,7 @@
             margin: 30px 0;
         }
         .signatures {
-            margin-top: 40px;
+            margin-top: 20px;
         }
         .signature-block {
             border: 1px solid #ccc;
@@ -47,12 +54,11 @@
         .hash-info {
             font-family: monospace;
             word-break: break-all;
-            font-size: 12px;
+            font-size: 9px;
             margin-top: 5px;
         }
         .timestamp {
             color: #666;
-            font-size: 14px;
         }
         @page {
             margin: 40px;
@@ -93,7 +99,7 @@
                                 <img src="{{ qrcode }}" />
                             </div>
                             <div class="hash-info">
-                                Hash: {{txHash}}
+                                {{did}}
                             </div>
                         </div>
                     </td>
@@ -110,7 +116,7 @@
         {{/each}}
     </div>
 
-    <footer style="margin-top: 40px; text-align: center; font-size: 12px;">
+    <footer style="margin-top: 40px; text-align: center; font-size: 11px;">
         <p>This document has been digitally signed and its authenticity can be verified using the QR codes above.</p>
         <p>Document generation date: {{generationTimestamp}}</p>
     </footer>
