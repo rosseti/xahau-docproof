@@ -132,6 +132,7 @@ export class DocumentService {
         wallet: signer.wallet,
         signed: signer.signed,
         signedAt: signer.signedAt,
+        txHash: signer.txHash,
         did: "",
       };
 
