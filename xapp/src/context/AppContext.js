@@ -14,10 +14,6 @@ export const AppProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const savedAccount = localStorage.getItem("wallet");
-    if (savedAccount) {
-      setAccount(savedAccount);
-    }
     setIsLoading(false);
 
     setXumm(new Xumm(process.env.NEXT_PUBLIC_XAMAN_API_KEY));
@@ -26,12 +22,16 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const xummReady = () => {
       console.log("XUMM Ready.");
+      xumm.user.account.then((usrAccount) => {
+        setAccount(usrAccount);
+        console.log('usrAccount', usrAccount);
+      });
     };
     const xummSuccess = async () => {
       {
         xumm.user.account.then((account) => {
-          localStorage.setItem("wallet", account);
           setAccount(account);
+          console.log(account);
         });
       }
     };
@@ -64,7 +64,6 @@ export const AppProvider = ({ children }) => {
 
   const logout = async () => {
     await xumm.logout();
-    localStorage.removeItem("wallet");
     setAccount(null);
     push("/login");
   };

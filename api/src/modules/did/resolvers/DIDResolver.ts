@@ -1,5 +1,5 @@
-const fetch = require('node-fetch');
-import crypto from 'crypto';
+const fetch = require("node-fetch");
+import crypto from "crypto";
 
 export default class DIDResolver {
   method: string = "docproof";
@@ -20,8 +20,18 @@ export default class DIDResolver {
       this.cache.delete(did);
     }
 
-    const [prefix, method, network, txHash] = did.split(":");
-    const [networkName, networkType] = network.split("-");
+    // Separar o DID da query
+    const [didPart, queryPart] = did.split("?");
+    const [prefix, method, txHash] = didPart.split(":");
+
+    if (prefix !== "did") {
+      throw new Error(`Invalid DID format: ${did}`);
+    }
+
+    // Processar parâmetros da query
+    const params = new URLSearchParams(queryPart);
+    const networkName = params.get("network") || "xahau";
+    const networkType = params.get("network_type") || "testnet";
 
     if (method !== this.method) {
       throw new Error(`Unknown DID method: ${method}`);
@@ -95,26 +105,29 @@ export default class DIDResolver {
     const XAHAU_MAINNET_RPC = "https://xahau.network";
 
     try {
-      const response = await fetch(networkType == "mainnet" ? XAHAU_MAINNET_RPC : XAHAU_TESTNET_RPC, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          method: "tx",
-          params: [
-            {
-              transaction: txHash,
-              binary: false,
-            },
-          ],
-          id: 1,
-        }),
-      });
+      const response = await fetch(
+        networkType == "mainnet" ? XAHAU_MAINNET_RPC : XAHAU_TESTNET_RPC,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            method: "tx",
+            params: [
+              {
+                transaction: txHash,
+                binary: false,
+              },
+            ],
+            id: 1,
+          }),
+        }
+      );
 
       const result: any = await response.json();
 
-      if ('error' in result.result) {
+      if ("error" in result.result) {
         throw new Error(result.result.error_message);
       }
       console.log(result);
@@ -123,7 +136,10 @@ export default class DIDResolver {
         throw new Error("Invalid hook parameters");
       }
 
-      if ('HookParameters' in result.result && result.result.HookParameters.length < 2) {
+      if (
+        "HookParameters" in result.result &&
+        result.result.HookParameters.length < 2
+      ) {
         throw new Error("Invalid hook parameters");
       }
 
@@ -155,5 +171,45 @@ export default class DIDResolver {
       };
     }
   }
-}
 
+  async createDIDDocument(resolution: any) {
+    const { did, metadata, network, networkType } = resolution;
+
+    const publicKey = metadata.data.SigningPubKey;
+
+    return {
+      "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/suites/ed25519-2020/v1",
+      ],
+      id: did.split("?")[0], // Remove query params
+      verificationMethod: [
+        {
+          id: `${did.split("?")[0]}#key-1`,
+          type: "Ed25519VerificationKey2020",
+          controller: did.split("?")[0],
+          publicKeyMultibase: `f${publicKey}`,
+        },
+      ],
+      authentication: [`${did.split("?")[0]}#key-1`],
+      assertionMethod: [`${did.split("?")[0]}#key-1`],
+      service: [
+        {
+          id: `${did.split("?")[0]}#xahau-service`,
+          type: "BlockchainTransactionService",
+          serviceEndpoint: {
+            network,
+            networkType,
+            txHash: metadata.metadata.txHash,
+            account: metadata.data.Account,
+          },
+        },
+      ],
+    };
+  }
+
+  async getDIDDocument(did: string) {
+    const resolution = await this.resolveDID(did);
+    return this.createDIDDocument(resolution);
+  }
+}

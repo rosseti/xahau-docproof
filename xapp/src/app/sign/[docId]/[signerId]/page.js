@@ -60,19 +60,16 @@ export default function PageSign() {
       console.log(txjson);
 
       await xumm.payload
-        .createAndSubscribe(
-          txjson,
-          (eventMessage) => {
-            if ("pre_signed" in eventMessage.data) {
-              toast.info("Pre-signed");
-            }
-
-            if ("signed" in eventMessage.data) {
-              toast.info("Signed");
-              return eventMessage;
-            }
+        .createAndSubscribe(txjson, (eventMessage) => {
+          if ("pre_signed" in eventMessage.data) {
+            toast.info("Pre-signed");
           }
-        )
+
+          if ("signed" in eventMessage.data) {
+            toast.info("Signed");
+            return eventMessage;
+          }
+        })
         .then(({ created, resolved }) => {
           console.log("Payload URL:", created.next.always);
           console.log("Payload QR:", created.refs.qr_png);
@@ -130,13 +127,12 @@ export default function PageSign() {
         });
       });
   }, [apiService]);
-
-  if (isLoading) return <PageLoader />;
+  
+  if (isLoading || !xumm) return <PageLoader />;
 
   return (
     <>
       <ToastContainer />
-
       {!isLoading && !account && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50 

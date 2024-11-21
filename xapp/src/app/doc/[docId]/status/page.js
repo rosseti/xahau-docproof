@@ -40,6 +40,12 @@ export default function PageStatus() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!isLoading && !account) {
+      router.push("/login");
+    }
+  }, [account, isLoading]);
+
+  useEffect(() => {
     if (!xumm) return;
     setApiService(ApiService(xumm));
   }, [xumm]);
@@ -82,7 +88,7 @@ export default function PageStatus() {
             </div>
 
             <button
-              className="btn btn-default mb-4 w-full"
+              className="btn btn-default mb-4 w-full shadow-lg"
               onClick={() =>
                 window.open(
                   `${process.env.NEXT_PUBLIC_API_URL}/file/${document.hash}`
@@ -93,7 +99,7 @@ export default function PageStatus() {
             </button>
 
             {document.status == "Fully Signed" && (
-              <button onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/proof/${docId}`)} className="btn btn-primary w-full">
+              <button onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/proof/${docId}`)} className="btn btn-primary w-full shadow-lg">
                 <FiDownload /> Signature Proof
               </button>
             )}

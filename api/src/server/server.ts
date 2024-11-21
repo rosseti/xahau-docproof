@@ -50,21 +50,11 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
       return res.status(404).json({ error: "Document not found" });
     }
 
-    const txHash1 =
-      "F9E0155050D5C1B02BB7CEBFE603E15D01674F48E059C28560E0F1D25A254EFD";
-    const txHash2 =
-      "2A4A4DD2DFA89671980318E09135DF776EFF4270835D32D29A6D3ED06D9CE430";
-
     const didCreator = new DIDCreator();
 
-    const did1 = didCreator.createDID(txHash1);
-    const did2 = didCreator.createDID(txHash2);
-
-    const qrcode1 = await QrcodeService.generateQRCode(
-      `${process.env.APP_URL}did/${did1}`
-    );
-    const qrcode2 = await QrcodeService.generateQRCode(
-      `${process.env.APP_URL}did/${did2}`
+    const owner = document.owner;
+    const documentQr = await QrcodeService.generateQRCode(
+      `${process.env.APP_URL}file/${document.hash}`
     );
 
     let normalizedSigners: Array<any> = [];
@@ -72,7 +62,7 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
     for (const signer of document.signers) {
       const did = didCreator.createDID(signer.txHash);
       const qrcode = await QrcodeService.generateQRCode(
-        `${process.env.APP_URL}did/${did}`
+        `${process.env.APP_URL}did/${encodeURIComponent(did)}`
       );
       normalizedSigners.push({
         email: signer.email,
@@ -87,8 +77,10 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
 
     const emailService = new EmailService();
     const htmlContent = await emailService.loadTemplate("doc_proof.html", {
+      owner,
       documentId: document.id,
       documentHash: document.hash,
+      documentQr,
       createdAt: document.createdAt,
       signers: normalizedSigners,
       app_url: process.env.APP_URL,
@@ -98,7 +90,9 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
     const options = {
       format: "A4",
       orientation: "portrait",
-      border: "5mm",
+      border: '1mm',        
+      paginationOffset: 1,
+      quality: 100,
       childProcessOptions: {
         env: {
           OPENSSL_CONF: "/dev/null",
@@ -106,12 +100,15 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
       },
     };
 
-    const pdfBuffer = await generatePdfAsync(htmlContent, options); // Gera o PDF em memória
-    res.setHeader("Content-Type", "application/pdf"); // Define o tipo de conteúdo como PDF
-    res.setHeader("Content-Disposition", `attachment; filename=${document.hash}-proof.pdf`); // Sugere o nome do arquivo para download
-    res.send(pdfBuffer); // Envia o conteúdo do PDF como resposta
+    const pdfBuffer = await generatePdfAsync(htmlContent, options);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${document.hash}-proof.pdf`
+    );
+    res.send(pdfBuffer);
   } catch (error: any) {
-    res.status(500).send("Error generating PDF: " + error.message); // Tratamento de erro
+    res.status(500).send("Error generating PDF: " + error.message);
   }
 });
 

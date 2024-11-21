@@ -84,6 +84,15 @@ export class DocumentService {
       document.status = DocumentStatus.PartiallySigned;
     }
 
+
+    if (document.status === DocumentStatus.FullySigned) {
+      notification.notifyPushNotification(
+        document.userToken,
+        "Document Fully Signed",
+        `Your document is now fully signed.`
+      );
+    }
+
     await document.save();
 
     return document;

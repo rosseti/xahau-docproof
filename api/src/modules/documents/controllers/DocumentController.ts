@@ -159,6 +159,8 @@ export class DocumentController {
   }
 
   static async generatePDFProof(req: any, res: any): Promise<any> {
+    const hash = 'a0c2f6a2c45a6652fbaf416c4c31cb77175ec913692dfbcf3f453af92c478eda';
+    const owner = 'rM21rCMcTnifB7KyiYqBUrEdxkeecAeZdw';
     const signingLink = `${process.env.APP_URL}sign/xyz/zzz`;
     const emailSubject = `Review and Sign: doc.pdf`;
 
@@ -178,6 +180,9 @@ export class DocumentController {
     const qrcode2 = await QrcodeService.generateQRCode(
       `${process.env.APP_URL}did/${did2}`
     );
+
+    const documentQr = await QrcodeService.generateQRCode(
+      `${process.env.APP_URL}file/${hash}`);
 
     const normalizedSigners = [
       {
@@ -202,7 +207,8 @@ export class DocumentController {
     const emailService = new EmailService();
     const emailBody = await emailService.loadTemplate("doc_proof.html", {
       email: "signer@mail.com",
-      link: signingLink,
+      owner,
+      documentQr,
       documentId: "673b047e266d6ee66db5c013",
       documentHash:
         "605f3e53913765bd9ed7d2a299dab30ed30803be287b90da96489d8f2c171a73",

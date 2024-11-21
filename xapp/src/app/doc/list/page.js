@@ -18,7 +18,6 @@ export default function PageList() {
 
   useEffect(() => {
     if (!isLoading && !account) {
-      console.log("Levando pra login");
       push("/login");
     }
   }, [account, isLoading]);
@@ -31,6 +30,8 @@ export default function PageList() {
   useEffect(() => {
     if (!apiService) return;
     apiService.getDocuments().then((documents) => {
+      console.log(documents);
+      // return;
       if (documents.length == 0) return;
       setDocuments(documents);
       console.log(documents);

@@ -53,8 +53,7 @@ const ApiService = (xumm) => {
     try {
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}/${signerId}`,
-        {
-        }
+        {}
       );
 
       return response.data;
@@ -82,58 +81,36 @@ const ApiService = (xumm) => {
   }
 
   async function markDocumentAsSigned(documentId, signerId, txid) {
-  try {
-    const headers = {
-      Authorization: `Bearer ${await xumm.environment.bearer}`,
-    };
+    try {
+      const headers = {
+        Authorization: `Bearer ${await xumm.environment.bearer}`,
+      };
 
-    const data = {
-      txid,
-    };
+      const data = {
+        txid,
+      };
 
-    const response = await axios.put(
-      `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}/${signerId}/sign`,
-      data,
-      {
-        headers
-      }
-    );
+      const response = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}/${signerId}/sign`,
+        data,
+        {
+          headers,
+        }
+      );
 
-    return response.data;
-  } catch (error) {
-    console.error("Error updating status: ", error.response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating status: ", error.response.data);
+    }
   }
-}
 
   return {
     getDocuments,
     getDocument,
     addAuthorizedSigners,
     getDocumentByIdAndSignerId,
-    markDocumentAsSigned
+    markDocumentAsSigned,
   };
 };
 
 export default ApiService;
-
-// export async function getDocuments() {
-//   try
-//   {
-//     const headers = await getRequestHeaders();
-
-//     const response = await axios.get(
-//       `${process.env.NEXT_PUBLIC_API_URL}/doc/list`,
-//       {
-//         headers
-//       }
-//     );
-
-//     const { documents } = response.data;
-
-//     return documents;
-//   } catch (error) {
-//     console.error("Error getting documents:", error);
-//   }
-// }
-
-

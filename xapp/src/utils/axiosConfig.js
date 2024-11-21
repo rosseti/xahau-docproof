@@ -7,8 +7,9 @@ const setupAxiosInterceptors = () => {
       const { status } = error.response;
 
       if (status === 401 || status == 403) {
+        // setAccount(null);
         // localStorage.removeItem('wallet');
-        // window.location.href = "/";
+        // window.location.href = "/login";
       }
 
       return Promise.reject(error);
