@@ -4,6 +4,7 @@ import {
   HttpException,
   NotFoundException,
 } from "@/exceptions";
+import DIDCreator from "@/modules/did/creators/DIDCreator";
 import UserDocument, {
   IUserDocument,
   Signer,
@@ -12,8 +13,8 @@ import crypto from "crypto";
 import fs from "fs";
 import mongoose from "mongoose";
 import path from "path";
-import { NotificationService } from "./NotificationService";
 import { PDFDocument } from "pdf-lib";
+import { NotificationService } from "./NotificationService";
 
 export class DocumentService {
   static getDocuments = async (wallet: string): Promise<IUserDocument[]> => {
@@ -76,7 +77,9 @@ export class DocumentService {
     });
 
     const totalSigners = document.signers.length;
-    const totalSigned = document.signers.filter((signer) => signer.signed).length;
+    const totalSigned = document.signers.filter(
+      (signer) => signer.signed
+    ).length;
 
     if (totalSigners === totalSigned) {
       document.status = DocumentStatus.FullySigned;
@@ -84,8 +87,8 @@ export class DocumentService {
       document.status = DocumentStatus.PartiallySigned;
     }
 
-
     if (document.status === DocumentStatus.FullySigned) {
+      console.log("Sending push notification");
       notification.notifyPushNotification(
         document.userToken,
         "Document Fully Signed",
@@ -119,8 +122,26 @@ export class DocumentService {
       expirationTime,
       signers,
       pageCount,
-      createdAt
+      createdAt,
     } = document;
+
+    const newSigners = signers.map((signer) => {
+      let returnSigner = {
+        id: signer.id,
+        email: signer.email,
+        wallet: signer.wallet,
+        signed: signer.signed,
+        signedAt: signer.signedAt,
+        did: "",
+      };
+
+      if (signer.signed) {
+        const didCreator = new DIDCreator();
+        returnSigner.did = didCreator.createDID(signer.txHash);
+      }
+
+      return returnSigner;
+    });
 
     return {
       id,
@@ -131,9 +152,9 @@ export class DocumentService {
       owner,
       status,
       expirationTime,
-      signers,
+      signers: newSigners,
       pageCount,
-      createdAt
+      createdAt,
     };
   };
 
@@ -158,18 +179,14 @@ export class DocumentService {
       throw new HttpException(404, "Document not found");
     }
 
-    const idHash = crypto.createHash("sha256").update(documentId).digest("hex").toUpperCase();
+    const idHash = crypto
+      .createHash("sha256")
+      .update(documentId)
+      .digest("hex")
+      .toUpperCase();
 
-    const {
-      id,
-      hash,
-      name,
-      size,
-      extension,
-      owner,
-      status,
-      expirationTime
-    } = document;
+    const { id, hash, name, size, extension, owner, status, expirationTime } =
+      document;
 
     const signers = document.signers.filter((signer) => signer.id === signerId);
 
@@ -183,7 +200,7 @@ export class DocumentService {
       status,
       expirationTime,
       signers,
-      idHash
+      idHash,
     };
   };
 
@@ -255,7 +272,7 @@ export class DocumentService {
       expirationTime,
       owner: req.user.sub,
       userToken: req.user.usertoken_uuidv4,
-      pageCount
+      pageCount,
     });
 
     await newDocument.save();

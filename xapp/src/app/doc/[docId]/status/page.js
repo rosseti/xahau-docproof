@@ -4,18 +4,14 @@ import { useContext, useEffect, useState } from "react";
 
 import { AppContext } from "@/context/AppContext";
 
-import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { useParams, useRouter } from "next/navigation";
 
 import PageLoader from "@/components/PageLoader";
-import ApiService from "@/services/APIService";
-import { processError } from "@/utils/solidity";
-import { FileSignature } from "lucide-react";
 import ProgressBar from "@/components/UI/ProgressBar";
+import ApiService from "@/services/APIService";
 import {
-  FiAtSign,
   FiCheckCircle,
   FiDownload,
   FiEye,
@@ -99,7 +95,14 @@ export default function PageStatus() {
             </button>
 
             {document.status == "Fully Signed" && (
-              <button onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/proof/${docId}`)} className="btn btn-primary w-full shadow-lg">
+              <button
+                onClick={() =>
+                  window.open(
+                    `${process.env.NEXT_PUBLIC_API_URL}/proof/${docId}`
+                  )
+                }
+                className="btn btn-primary w-full shadow-lg"
+              >
                 <FiDownload /> Signature Proof
               </button>
             )}
@@ -172,6 +175,21 @@ export default function PageStatus() {
                             <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
                               <FiLoader className="mr-1" /> Pending
                             </span>
+                          )}
+
+                          {signer.signed && (
+                            <button
+                              onClick={() =>
+                                window.open(
+                                  `${
+                                    process.env.NEXT_PUBLIC_APP_URL
+                                  }did/${encodeURIComponent(signer.did)}`
+                                )
+                              }
+                              className="btn btn-ghost btn-xs ml-2"
+                            >
+                              <FiEye /> DID
+                            </button>
                           )}
                         </td>
                       </tr>
