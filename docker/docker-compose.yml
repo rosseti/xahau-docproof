@@ -1,9 +1,22 @@
 version: '3.8'
 services:
-  evm-xsign-db:
+  xahau-docproof-db:
     image: mongo:8.0.1-rc0-noble
+    container_name: xahau-docproof-db
     ports:
       - '27017:27017'
     volumes:
       - ~/.databases/mongodb-docker/:/data/db
 
+  xahau-docproof-api:
+    build:
+      context: ../api/
+      dockerfile: Dockerfile
+    container_name: xahau-docproof-api
+    ports:
+      - "3001:3001" 
+    volumes:
+      - ../api/:/usr/src/app/
+    environment:
+      - NODE_ENV=development
+    command: ["npm", "run", "serve"]
