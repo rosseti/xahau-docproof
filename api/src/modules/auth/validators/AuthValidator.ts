@@ -2,7 +2,7 @@ import Web3 from "web3";
 
 const jwt = require("jsonwebtoken");
 
-const SECRET_KEY = process.env.JWT_SECRET_KEY || "secret";
+const SECRET_KEY = process.env.XAMAN_SECRET_KEY || "secret";
 
 export class AuthValidator {
   static validateAndSignJWT = (signature: string, message: string, wallet: string) => {

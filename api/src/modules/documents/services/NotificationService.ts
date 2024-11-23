@@ -8,7 +8,7 @@ export class NotificationService {
 
   constructor() {
     this.emailService = new EmailService();
-    this.xummService = new Xumm(process.env.API_KEY || "", process.env.JWT_SECRET_KEY || "");
+    this.xummService = new Xumm(process.env.XAMAN_API_KEY || "", process.env.XAMAN_SECRET_KEY || "");
   }
 
   async notifyPushNotification(userToken: string, subtitle: string, body: string): Promise<void> {
@@ -30,12 +30,12 @@ export class NotificationService {
 
     for (const signer of document.signers) {
 
-      const signingLink = `${process.env.APP_URL}sign/${document.id}/${signer.id}`;
+      const signingLink = `${process.env.XAPP_URL}sign/${document.id}/${signer.id}`;
       const emailSubject = `Review and Sign: ${document.name}`;
       //const emailBody = `Hello ${signer.email}, please review and sign the document: <a href="${signingLink}">${signingLink}</a>`;
       const emailBody = await this.emailService.loadTemplate('review_and_sign.html',        
         {
-          app_url: process.env.APP_URL,
+          app_url: process.env.XAPP_URL,
           email: signer.email,
           doc_name: document.name,
           link: signingLink,

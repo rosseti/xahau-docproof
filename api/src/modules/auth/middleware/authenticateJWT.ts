@@ -4,7 +4,7 @@ import { Xumm } from "xumm";
 import { rsaPublicKey } from "./jwk";
 const jwt = require("jsonwebtoken");
 
-const secretKey = process.env.JWT_SECRET_KEY || "secret";
+const secretKey = process.env.XAMAN_SECRET_KEY || "secret";
 
 export const authenticateJWT = async (req: AuthRequest, res: Response, next: NextFunction): Promise<any> => {
   const authorizationHeader = req.headers.authorization;

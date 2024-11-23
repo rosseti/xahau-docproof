@@ -139,7 +139,7 @@ export class DocumentController {
   }
 
   static async reviewAndSign(req: any, res: any): Promise<any> {
-    const signingLink = `${process.env.APP_URL}sign/xyz/zzz`;
+    const signingLink = `${process.env.XAPP_URL}sign/xyz/zzz`;
     const emailSubject = `Review and Sign: doc.pdf`;
     const normalizedSigners = [
       { email: "john@doe.com", signed: false },
@@ -152,7 +152,7 @@ export class DocumentController {
       doc_name: "doc.pdf",
       signers: normalizedSigners,
       subject: emailSubject,
-      app_url: process.env.APP_URL,
+      app_url: process.env.XAPP_URL,
     });
 
     return res.status(200).send(emailBody);
@@ -161,7 +161,7 @@ export class DocumentController {
   static async generatePDFProof(req: any, res: any): Promise<any> {
     const hash = 'a0c2f6a2c45a6652fbaf416c4c31cb77175ec913692dfbcf3f453af92c478eda';
     const owner = 'rM21rCMcTnifB7KyiYqBUrEdxkeecAeZdw';
-    const signingLink = `${process.env.APP_URL}sign/xyz/zzz`;
+    const signingLink = `${process.env.XAPP_URL}sign/xyz/zzz`;
     const emailSubject = `Review and Sign: doc.pdf`;
 
     const txHash1 =
@@ -175,14 +175,14 @@ export class DocumentController {
     const did2 = didCreator.createDID(txHash2);
 
     const qrcode1 = await QrcodeService.generateQRCode(
-      `${process.env.APP_URL}did/${did1}`
+      `${process.env.XAPP_URL}did/${did1}`
     );
     const qrcode2 = await QrcodeService.generateQRCode(
-      `${process.env.APP_URL}did/${did2}`
+      `${process.env.XAPP_URL}did/${did2}`
     );
 
     const documentQr = await QrcodeService.generateQRCode(
-      `${process.env.APP_URL}file/${hash}`);
+      `${process.env.XAPP_URL}file/${hash}`);
 
     const normalizedSigners = [
       {
@@ -215,7 +215,7 @@ export class DocumentController {
       createdAt: new Date(),
       signers: normalizedSigners,
       subject: emailSubject,
-      app_url: process.env.APP_URL,
+      app_url: process.env.XAPP_URL,
       generationTimestamp: new Date(),
     });
 

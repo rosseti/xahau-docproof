@@ -54,7 +54,7 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
 
     const owner = document.owner;
     const documentQr = await QrcodeService.generateQRCode(
-      `${process.env.APP_URL}file/${document.hash}`
+      `${process.env.XAPP_URL}file/${document.hash}`
     );
 
     let normalizedSigners: Array<any> = [];
@@ -62,7 +62,7 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
     for (const signer of document.signers) {
       const did = didCreator.createDID(signer.txHash);
       const qrcode = await QrcodeService.generateQRCode(
-        `${process.env.APP_URL}did/${encodeURIComponent(did)}`
+        `${process.env.XAPP_URL}did/${encodeURIComponent(did)}`
       );
       normalizedSigners.push({
         email: signer.email,
@@ -83,7 +83,7 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
       documentQr,
       createdAt: document.createdAt,
       signers: normalizedSigners,
-      app_url: process.env.APP_URL,
+      app_url: process.env.XAPP_URL,
       generationTimestamp: new Date(),
     });
 

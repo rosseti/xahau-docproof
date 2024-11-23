@@ -1,16 +1,16 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const connectToDatabase = async () => {
+const MONGODB_URL =
+  process.env.MONGODB_URL || "mongodb://xahau-docproof-db:27017/xahau-docproof";
+
+const connectToMongoDB = async () => {
   try {
-    await mongoose.connect('mongodb://localhost:27017/securesmartsign', {
-      // useNewUrlParser: true,
-      // useUnifiedTopology: true
-    });
-    console.log('Conectado ao MongoDB com sucesso!');
+    await mongoose.connect(MONGODB_URL, {});
+    console.log("Connected to MongoDB");
   } catch (error) {
-    console.error('Erro ao conectar ao MongoDB:', error);
-    process.exit(1); // Encerra o processo em caso de erro
+    console.error("Unable to connect to MongoDB:", error);
+    process.exit(1);
   }
 };
 
-export default connectToDatabase;
+export default connectToMongoDB;
