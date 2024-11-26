@@ -10,7 +10,6 @@ const Dropzone = ({ onFileChange }) => {
       setFile(acceptedFiles[0]);
       onFileChange(acceptedFiles[0]);
       setIsDragging(false);
-      console.log('Arquivo aceito:', acceptedFiles[0]);
     };
   
     const { getRootProps, getInputProps } = useDropzone({

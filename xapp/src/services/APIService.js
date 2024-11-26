@@ -5,8 +5,6 @@ const ApiService = (xumm) => {
     throw new Error("Xumm object is required for API calls");
   }
 
-  console.log("Carregou XUMM", xumm);
-
   async function getDocuments() {
     try {
       const headers = {

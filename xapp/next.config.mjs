@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-console.log(process.env.API_URL);
+
 const nextConfig = {
     reactStrictMode: false,
     async rewrites() {
