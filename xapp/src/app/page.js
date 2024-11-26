@@ -1,6 +1,7 @@
 "use client";
 
 import PageLoader from "@/components/PageLoader";
+import XahauLandingPage from "@/components/XahauLandingPage";
 import { AppContext } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 import { useContext, useEffect } from "react";
@@ -10,10 +11,6 @@ export default function Home() {
   const { account, isLoading, xumm } = useContext(AppContext);
 
   useEffect(() => {
-    if (!isLoading && !account) {
-      router.push("/login");
-    }
-
     if (!isLoading && account) {
       router.push("/doc/list");
     }
@@ -21,5 +18,7 @@ export default function Home() {
 
   if (isLoading) return <PageLoader />;
 
-  return <> </>;
+  return <>
+    <XahauLandingPage />
+  </>;
 }

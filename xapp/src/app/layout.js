@@ -29,7 +29,12 @@ export default function RootLayout({ children }) {
   const pathname = usePathname();
   setupAxiosInterceptors();
   const hideHeaderRoutes = ['/login', '/sign'];
-  const hideHeaderRoutesFiltered = hideHeaderRoutes.filter(url => pathname.startsWith(url)).length > 0;
+  const hideHeaderRoutesFiltered = hideHeaderRoutes
+    .filter(url => pathname.startsWith(url)).length > 0
+    ||
+    pathname === '/';
+  console.log(pathname);
+
   return (
       <AppProvider>
         <html lang="en">
