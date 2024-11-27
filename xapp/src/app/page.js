@@ -1,7 +1,7 @@
 "use client";
 
+import { LandingPage } from "@/components/LP";
 import PageLoader from "@/components/PageLoader";
-import XahauLandingPage from "@/components/XahauLandingPage";
 import { AppContext } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 import { useContext, useEffect } from "react";
@@ -19,6 +19,6 @@ export default function Home() {
   if (isLoading) return <PageLoader />;
 
   return <>
-    <XahauLandingPage />
+    <LandingPage />
   </>;
 }
