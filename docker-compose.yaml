@@ -6,10 +6,13 @@ services:
     ports:
       - "27017:27017"
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME:-admin}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-securepassword}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:-securepassword}
+      - MONGO_INITDB_DATABASE=${MONGO_DATABASE:-xahau-docproof}
     deploy:
-      replicas: ${USE_LOCAL_MONGO:-0} # Define 1 para habilitar MongoDB local, 0 para desativar.
+      replicas: ${USE_LOCAL_MONGO:-0}
+    volumes:
+      - ./scripts/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh
 
   xahau-docproof-api:
     build:
@@ -22,6 +25,8 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
       - MONGO_URI=${MONGO_URI:-mongodb://xahau-docproof-db:27017/xahau-docproof}
     command: ["npm", "run", "serve"]
+    depends_on:
+    - xahau-docproof-db
 
   xahau-docproof-xapp:
     build:
@@ -34,3 +39,7 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
       - API_URL=${API_URL:-http://xahau-docproof-api:3001/api/}
     command: ["npm", "run", "dev"]
+
+networks:
+  default:
+    name: xahau-docproof-network

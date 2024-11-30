@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const MONGODB_URL =
-  process.env.MONGO_URI || "mongodb://xahau-docproof-db:27017/xahau-docproof";
+  process.env.MONGO_URI || '';
 
 const connectToMongoDB = async () => {
   try {
