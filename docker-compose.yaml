@@ -1,0 +1,36 @@
+version: "3.8"
+services:
+  xahau-docproof-db:
+    image: mongo:8.0.1-rc0-noble
+    container_name: xahau-docproof-db
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-securepassword}
+    deploy:
+      replicas: ${USE_LOCAL_MONGO:-0} # Define 1 para habilitar MongoDB local, 0 para desativar.
+
+  xahau-docproof-api:
+    build:
+      context: ./api/
+      dockerfile: Dockerfile
+    container_name: xahau-docproof-api
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - MONGO_URI=${MONGO_URI:-mongodb://xahau-docproof-db:27017/xahau-docproof}
+    command: ["npm", "run", "serve"]
+
+  xahau-docproof-xapp:
+    build:
+      context: ./xapp/
+      dockerfile: Dockerfile
+    container_name: xahau-docproof-xapp
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - API_URL=${API_URL:-http://xahau-docproof-api:3001/api/}
+    command: ["npm", "run", "dev"]

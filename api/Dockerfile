@@ -2,7 +2,7 @@ FROM node:20-alpine
 
 WORKDIR /usr/src/app/
 
-COPY package*.json ./
+COPY . .
 
 RUN apk update && apk add --no-cache wget && apk --no-cache add openssl wget && apk add ca-certificates && update-ca-certificates
 
