@@ -37,7 +37,7 @@ import Footer from "./Footer";
               >
                 How it Works
               </a>
-              <button className="bg-blue-600 font-sans text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+              <button onClick={() => router.push("/login")} className="bg-blue-600 font-sans text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
                 Get Started
               </button>
             </nav>
@@ -71,7 +71,7 @@ import Footer from "./Footer";
                   blockchain technology.
                 </p>
                 <div className="flex items-center space-x-6">
-                  <button className="bg-blue-600 text-white px-8 py-3.5 rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center shadow-lg hover:shadow-xl">
+                  <button onClick={() => router.push("/login")}  className="bg-blue-600 text-white px-8 py-3.5 rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center shadow-lg hover:shadow-xl">
                     Get Started <ChevronRight className="ml-2" />
                   </button>
                   {/* <div className="flex items-center">
