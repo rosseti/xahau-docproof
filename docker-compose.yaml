@@ -19,7 +19,7 @@ services:
       context: ./api/
       dockerfile: Dockerfile
     ports:
-      - "3001:3001"
+      - "${API_PORT:-3001}:3001"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - MONGO_URI=${MONGO_URI:-mongodb://xahau-docproof-db:27017/xahau-docproof}
@@ -30,7 +30,7 @@ services:
       context: ./xapp/
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "${XAPP_PORT:-3000}:3000"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - API_URL=${API_URL:-http://xahau-docproof-api:3001/api/}
