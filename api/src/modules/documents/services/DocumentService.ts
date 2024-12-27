@@ -252,7 +252,7 @@ export class DocumentService {
     const ext = path.extname(req.file.originalname);
     const filename = `${fileHash}${ext}`;
 
-    const filePath = path.join("storage", filename);
+    const filePath = path.join("/storage", filename);
     fs.writeFileSync(filePath, req.file.buffer);
 
     const expirationTime = new Date(Date.now() + 20 * (24 * 60 * 60 * 1000));

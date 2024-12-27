@@ -24,6 +24,8 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
       - MONGO_URI=${MONGO_URI:-mongodb://xahau-docproof-db:27017/xahau-docproof}
     command: ["npm", "run", "serve"]
+    volumes:
+      - storage-data:/storage
 
   xahau-docproof-xapp:
     build:
@@ -37,6 +39,7 @@ services:
     command: ["npm", "run", "dev"]
 
 volumes:
+  storage-data:
   mongo-data:
 
 networks:
