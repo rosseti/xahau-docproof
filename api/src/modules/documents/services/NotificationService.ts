@@ -8,7 +8,7 @@ export class NotificationService {
 
   constructor() {
     this.emailService = new EmailService();
-    this.xummService = new Xumm(process.env.XAMAN_API_KEY || "", process.env.XAMAN_SECRET_KEY || "");
+    this.xummService = new Xumm(process.env.NEXT_PUBLIC_XAMAN_API_KEY || "", process.env.XAMAN_SECRET_KEY || "");
   }
 
   async notifyPushNotification(userToken: string, subtitle: string, body: string): Promise<void> {
