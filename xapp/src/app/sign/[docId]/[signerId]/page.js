@@ -146,7 +146,7 @@ export default function PageSign() {
 
       {document.hash && (
         <iframe
-          src={`http://localhost:3000/api/file/${document.hash}`}
+          src={`${process.env.NEXT_PUBLIC_API_URL}/file/${document.hash}`}
           width="100%"
           style={{ height: "100vh" }}
           scrolling="no"
