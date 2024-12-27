@@ -130,10 +130,6 @@ app.get("/api/file/:hash", (req: any, res: any) => {
   });
 });
 
-app.get("/api/env", (req: any, res: any) => {
-  res.json(process.env);
-});
-
 /* c8 ignore start */
 if (process.argv.includes("--run"))
   app.listen(PORT, async () => {
