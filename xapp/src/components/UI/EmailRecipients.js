@@ -80,6 +80,7 @@ const EmailRecipients = ({
             onChange={(e) => setCurrentEmail(e.target.value)}
             autoFocus={true}
             onKeyDown={handleKeyDown}
+            onBlur={addEmail}
             className="w-full border-none focus:outline-none bg-transparent"
             placeholder="Type an email and press Enter"
           />

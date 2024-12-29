@@ -283,7 +283,7 @@ export class DocumentService {
 
   static getDocumentPageCount = async (pdfPath: string) => {
     const pdfBytes = fs.readFileSync(pdfPath);
-    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
 
     const pageCount = pdfDoc.getPageCount();
 
