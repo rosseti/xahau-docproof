@@ -53,7 +53,7 @@ export default function PageAddSigners() {
   const handleSubmit = async (event) => {
     setIsAwaiting(true);
 
-    console.log("Enviando para:", signers);
+    console.log("Sending to:", signers);
 
     event.preventDefault();
 
@@ -63,7 +63,7 @@ export default function PageAddSigners() {
         push(`/doc/${docId}/success`);
       })
       .catch((error) => {
-        toast.error("Erro ao associar partes!", error);
+        toast.error("Error associating parts!", error);
       })
       .finally(() => {
         setIsAwaiting(false);

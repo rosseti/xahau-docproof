@@ -9,8 +9,4 @@ const jwk: any = {
     "use": "sig"
   };
   
-  // A chave pública RSA no formato PEM
 export const rsaPublicKey: string = jwkToPem(jwk);
-//   export const rsaPublicKey: string = `-----BEGIN PUBLIC KEY-----
-//   MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA${jwk.n}AQAB
-//   -----END PUBLIC KEY-----`;
