@@ -115,7 +115,9 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
 app.get("/api/file/:hash", (req: any, res: any) => {
   const { hash } = req.params;
 
-  const filePath = path.resolve("/storage", `${hash}.pdf`);
+  const storagePath = process.env.STORAGE_PATH || "/storage";
+
+  const filePath = path.resolve(storagePath, `${hash}.pdf`);
 
   fs.access(filePath, fs.constants.F_OK, (err) => {
     if (err) {
