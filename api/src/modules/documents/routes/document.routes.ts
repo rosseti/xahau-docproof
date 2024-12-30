@@ -7,7 +7,7 @@ const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
-  limits: { fileSize: 1024 * 1024 * 100 }, // Limite de 5MB
+  limits: { fileSize: 33554432 }, // 32MB
   fileFilter: (req: any, file: any, cb: any) => {
     if (
       file.mimetype === "application/pdf" ||
@@ -34,5 +34,3 @@ docRoutes.post("/create", [authenticateJWT, upload.single("file")], DocumentCont
 docRoutes.put("/:documentId/:signerId/sign", authenticateJWT, DocumentController.markDocumentAsSigned);
 docRoutes.get("/:documentId/:signerId", DocumentController.getDocumentByIdAndSignerId);
 docRoutes.get("/:documentId", authenticateJWT, DocumentController.getDocumentById);
-
-// authRoutes.get("/me", authenticateJWT, AuthController.me);

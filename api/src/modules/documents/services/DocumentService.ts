@@ -15,23 +15,26 @@ import mongoose from "mongoose";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
 import { NotificationService } from "./NotificationService";
+import { InternalServerErrorException } from "@/exceptions/InternalServerErrorException";
 
 export class DocumentService {
-  static getDocuments = async (wallet: string): Promise<IUserDocument[]> => {
-    if (!wallet) {
-      throw new BadRequestException("Owner wallet is required");
+  static async getDocuments(wallet: string): Promise<IUserDocument[]> {
+    if (!wallet || typeof wallet !== 'string' || wallet.trim().length === 0) {
+      throw new BadRequestException("A valid owner wallet is required");
     }
-
-    const documents: IUserDocument[] = await UserDocument.find({
-      owner: wallet,
-    })
-      // .select(
-      //   "-signedSigners"
-      // )
-      .sort({ createdAt: -1 });
-
-    return documents;
-  };
+  
+    try {
+      const documents = await UserDocument.find({ owner: wallet })
+        .sort({ createdAt: -1 })
+        .exec(); 
+  
+      return documents || [];
+    } catch (error) {
+      throw new InternalServerErrorException(
+        "An error occurred while fetching documents"
+      );
+    }
+  }  
 
   static markDocumentAsSigned = async (
     documentId: string,
@@ -50,7 +53,7 @@ export class DocumentService {
     const document = await UserDocument.findOne({
       _id: documentId,
       signers: { $elemMatch: { _id: signerId } },
-    });
+    }).exec();
 
     if (!document) {
       throw new HttpException(404, "Document not found.");
@@ -106,7 +109,7 @@ export class DocumentService {
       throw new BadRequestException("Invalid document ID format.");
     }
 
-    const document = await UserDocument.findById(documentId);
+    const document = await UserDocument.findById(documentId).exec();
     if (!document) {
       throw new HttpException(404, "Document not found");
     }
@@ -174,7 +177,7 @@ export class DocumentService {
     const document = await UserDocument.findOne({
       _id: documentId,
       signers: { $elemMatch: { _id: signerId } },
-    });
+    }).exec();
 
     if (!document) {
       throw new HttpException(404, "Document not found");
@@ -217,7 +220,7 @@ export class DocumentService {
       throw new HttpException(400, "Invalid signers list or empty.");
     }
 
-    const document = await UserDocument.findById(documentId);
+    const document = await UserDocument.findById(documentId).exec();
     if (!document) {
       throw new NotFoundException("Document not found");
     }

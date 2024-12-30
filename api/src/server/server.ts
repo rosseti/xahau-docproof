@@ -140,4 +140,6 @@ if (process.argv.includes("--run"))
   });
 /* c8 ignore end */
 
+app.disable("x-powered-by");
+
 export { app };

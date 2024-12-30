@@ -1,6 +1,5 @@
-import { NextFunction, Request, Response } from "express";
 import { AuthRequest } from "@/shared/types/AuthRequest";
-import { Xumm } from "xumm";
+import { NextFunction, Response } from "express";
 import { rsaPublicKey } from "./jwk";
 const jwt = require("jsonwebtoken");
 
