@@ -64,12 +64,12 @@ const Footer = () => {
           <h4 className="font-bold mb-4">Legal</h4>
           <ul className="space-y-2">
             <li>
-              <a href="#" className="text-gray-300 hover:text-white">
+              <a href="/privacy" className="text-gray-300 hover:text-white">
                 Privacy Policy
               </a>
             </li>
             <li>
-              <a href="#" className="text-gray-300 hover:text-white">
+              <a href="/terms" className="text-gray-300 hover:text-white">
                 Terms of Service
               </a>
             </li>
