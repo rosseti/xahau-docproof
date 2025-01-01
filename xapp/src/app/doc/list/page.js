@@ -68,8 +68,11 @@ export default function PageList() {
           dataLength={documents.length}
           next={loadDocuments}
           hasMore={hasMore}
-          loader={<div className="text-center py-4 flex justify-center"><span className="loading loading-spinner mr-5"></span> Loading...</div>}
-          endMessage={<div className="text-center py-4">No more documents</div>}
+          loader={
+            <div className="text-center py-4 flex justify-center">
+              <span className="loading loading-spinner mr-5"></span> Loading...
+            </div>
+          }
           scrollThreshold={0.9}
         >
           <div className="w-full  text-gray-700">
@@ -84,7 +87,13 @@ export default function PageList() {
                 className="grid grid-cols-[1fr_200px] border-b border-gray-300 p-2 hover:bg-gray-50"
               >
                 <div title={document.name} className="truncate p-2">
-                  <Link href={`/doc/${document._id}/status`}>
+                  <Link
+                    href={
+                      document.status == "Pending"
+                        ? `/doc/${document._id}/add-signers`
+                        : `/doc/${document._id}/status`
+                    }
+                  >
                     {document.name}
                   </Link>
                 </div>
