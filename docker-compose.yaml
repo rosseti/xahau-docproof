@@ -36,7 +36,7 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - API_URL=${API_URL:-http://xahau-docproof-api:3001/api/}
-    command: ["sh", "-c", "npm run build && npm run start"]
+    command: ["npm", "run", "start"]
 
 volumes:
   storage-data:
