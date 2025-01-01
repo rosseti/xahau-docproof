@@ -32,21 +32,21 @@ export default function PageList() {
 
   useEffect(() => {
     if (!apiService) return;
-    loadDocuments(); 
+    loadDocuments();
   }, [apiService]);
 
   const loadDocuments = async () => {
     try {
-      const { documents: newDocuments, total } = await apiService.getDocuments(page); 
-  
-      console.log(documents);
+      const { documents: newDocuments, total } = await apiService.getDocuments(
+        page
+      );
 
       if (documents.length + newDocuments.length >= total) {
-        setHasMore(false); 
+        setHasMore(false);
       }
-  
-      setDocuments((prev) => [...prev, ...newDocuments]); 
-      setPage((prevPage) => prevPage + 1); 
+
+      setDocuments((prev) => [...prev, ...newDocuments]);
+      setPage((prevPage) => prevPage + 1);
     } catch (error) {
       console.error("Error loading documents:", error);
       setHasMore(false);
@@ -64,97 +64,35 @@ export default function PageList() {
           Here you can see the list of documents you have created.
         </p>
 
-      <InfiniteScroll
-        dataLength={documents.length} 
-        next={loadDocuments} 
-        hasMore={hasMore} 
-        loader={<div className="text-center py-4">Loading more...</div>} 
-        endMessage={<div className="text-center py-4">No more documents</div>} 
-        scrollThreshold={0.9} 
-      >
-        <div className="w-full  text-gray-700">
-          {/* Cabeçalho */}
-          <div className="grid grid-cols-[1fr_200px] bg-gray-200 text-gray-700 font-semibold p-2 rounded-tl-lg rounded-tr-lg">
-            <div className="p-2">Name</div>
-            <div className="p-2">Status</div>
-          </div>
-
-          {/* Linhas de dados */}
-          {documents.map((document) => (
-            <div
-              key={document._id}
-              className="grid grid-cols-[1fr_200px] border-b border-gray-300 p-2 hover:bg-gray-50"
-            >
-              <div title={document.name} className="truncate p-2">
-                <Link href={`/doc/${document._id}/status`}>
-                  {document.name}
-                </Link>
-              </div>
-              <div className="p-2">{document.status}</div>
+        <InfiniteScroll
+          dataLength={documents.length}
+          next={loadDocuments}
+          hasMore={hasMore}
+          loader={<div className="text-center py-4 flex justify-center"><span className="loading loading-spinner mr-5"></span> Loading...</div>}
+          endMessage={<div className="text-center py-4">No more documents</div>}
+          scrollThreshold={0.9}
+        >
+          <div className="w-full  text-gray-700">
+            <div className="grid grid-cols-[1fr_200px] bg-gray-200 text-gray-700 font-semibold p-2 rounded-tl-lg rounded-tr-lg">
+              <div className="p-2">Name</div>
+              <div className="p-2">Status</div>
             </div>
-          ))}
-        </div>
-      </InfiniteScroll>
 
-        {1!=1 && (
-          <table className="table w-full">
-            <thead>
-              <tr>
-                <th className="rounded-tl-lg bg-gray-200 text-gray-700">
-                  Name
-                </th>
-                <th className="rounded-tr-lg bg-gray-200 text-gray-700">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <InfiniteScroll
-              dataLength={documents.length}
-              next={loadDocuments} 
-              hasMore={hasMore} 
-              loader={
-                <tr>
-                  <td colSpan="2" className="text-center">
-                    Loading...
-                  </td>
-                </tr>
-              } 
-              endMessage={
-                <tr>
-                  <td colSpan="2" className="text-center">
-                    No more documents
-                  </td>
-                </tr>
-              } 
-              scrollableTarget="scrollableDiv"  
-            >
-              <tbody>
-                {documents.map((document, rowIndex) => (
-                  <tr key={rowIndex}>
-                    <td>
-                      <Link href={`/doc/${document._id}/status`}>
-                        {document.name}
-                      </Link>
-                    </td>
-                    <td>{document.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </InfiniteScroll>
-            {/* <tbody>
-              {documents.map((document, rowIndex) => (
-                <tr key={rowIndex}>
-                  <td>
-                    <Link href={`/doc/${document._id}/status`}>
-                      {document.name}
-                    </Link>
-                  </td>
-                  <td>{document.status}</td>
-                </tr>
-              ))}
-            </tbody> }*/}
-          </table>
-        )}
+            {documents.map((document) => (
+              <div
+                key={document._id}
+                className="grid grid-cols-[1fr_200px] border-b border-gray-300 p-2 hover:bg-gray-50"
+              >
+                <div title={document.name} className="truncate p-2">
+                  <Link href={`/doc/${document._id}/status`}>
+                    {document.name}
+                  </Link>
+                </div>
+                <div className="p-2">{document.status}</div>
+              </div>
+            ))}
+          </div>
+        </InfiniteScroll>
       </div>
     </>
   );
