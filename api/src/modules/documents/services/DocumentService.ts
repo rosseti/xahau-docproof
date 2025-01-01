@@ -18,23 +18,27 @@ import { NotificationService } from "./NotificationService";
 import { InternalServerErrorException } from "@/exceptions/InternalServerErrorException";
 
 export class DocumentService {
-  static async getDocuments(wallet: string): Promise<IUserDocument[]> {
-    if (!wallet || typeof wallet !== 'string' || wallet.trim().length === 0) {
+  static async getDocuments(
+    wallet: string,
+    page: number,
+    limit: number
+  ): Promise<{ documents: any[]; total: number }> {
+    if (!wallet || typeof wallet !== "string" || wallet.trim().length === 0) {
       throw new BadRequestException("A valid owner wallet is required");
     }
-  
-    try {
-      const documents = await UserDocument.find({ owner: wallet })
-        .sort({ createdAt: -1 })
-        .exec(); 
-  
-      return documents || [];
-    } catch (error) {
-      throw new InternalServerErrorException(
-        "An error occurred while fetching documents"
-      );
-    }
-  }  
+
+    const skip = (page - 1) * limit;
+
+    const documents = await UserDocument.find({ owner: wallet }) 
+      .sort({ createdAt: -1 }) 
+      .skip(skip) 
+      .limit(limit) 
+      .lean();
+
+    const total = await UserDocument.countDocuments({ owner: wallet });
+
+    return { documents, total };
+  }
 
   static markDocumentAsSigned = async (
     documentId: string,
