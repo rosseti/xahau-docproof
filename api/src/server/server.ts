@@ -125,6 +125,7 @@ app.get("/api/file/:hash", (req: any, res: any) => {
     }
 
     res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${hash}.pdf"`);
 
     res.sendFile(filePath, (err: Error) => {
       if (err) {
