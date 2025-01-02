@@ -109,7 +109,7 @@ export default function PageStatus() {
           </div>
           <div className="p-4">
             <div className="mb-4">
-              <h2 className="text-2xl font-bold text-wrap">{document.name}</h2>
+              <h2 className="text-2xl font-bold break-words w-96">{document.name}</h2>
               {document.status == "Fully Signed" && (
                 <div className="text-success font-bold text-xs">
                   Signing completed
