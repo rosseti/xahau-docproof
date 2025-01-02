@@ -9,11 +9,18 @@ import DIDCreator from "@/modules/did/creators/DIDCreator";
 export class DocumentController {
   static async getDocuments(req: AuthRequest, res: Response): Promise<any> {
     const wallet = req.user!.sub;
+    const page = parseInt(req.query.page as string) || 1; 
+    const limit = parseInt(req.query.limit as string) || 10;
 
     try {
-      const documents = await DocumentService.getDocuments(wallet);
+      const { documents, total } = await DocumentService.getDocuments(wallet, page, limit);
 
-      return res.status(200).json({ documents });
+      return res.status(200).json({
+        documents,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+      });
     } catch (error) {
       return res
         .status(500)
