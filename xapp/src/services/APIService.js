@@ -5,22 +5,20 @@ const ApiService = (xumm) => {
     throw new Error("Xumm object is required for API calls");
   }
 
-  async function getDocuments() {
+  async function getDocuments(page) {
     try {
       const headers = {
         Authorization: `Bearer ${await xumm.environment.bearer}`,
       };
 
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/doc/list`,
+        `${process.env.NEXT_PUBLIC_API_URL}/doc/list?page=${page}&limit=10`,
         {
           headers,
         }
       );
 
-      const { documents } = response.data;
-
-      return documents;
+      return response.data;
     } catch (error) {
       console.error("Error getting documents:", error);
     }
