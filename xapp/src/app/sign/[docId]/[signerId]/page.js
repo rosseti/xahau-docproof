@@ -22,8 +22,6 @@ export default function PageSign() {
   const { xumm, connectWallet } = useContext(AppContext);
 
   const [document, setDocument] = useState({});
-  const [authorizedSignerCount, setAuthorizedSignerCount] = useState(0);
-  const [signatureCount, setSignatureCount] = useState(0);
 
   const [isSigning, setSigning] = useState(false);
   const [isAlreadySigned, setAlreadySigned] = useState(false);
@@ -35,12 +33,11 @@ export default function PageSign() {
     setSigning(true);
     event.preventDefault();
     try {
-      const networkId = await xumm.user.networkId;
 
       const txjson = {
         TransactionType: "Invoke",
         Destination: "rsARu8NWSKAp1FvRXx7wXfkYMFuAVhnQTK",
-        NetworkID: networkId,
+        NetworkID: process.env.NEXT_PUBLIC_NETWORK_ID,
         HookParameters: [
           {
             HookParameter: {
@@ -54,7 +51,7 @@ export default function PageSign() {
               HookParameterValue: document.idHash,
             },
           },
-        ],
+        ]
       };
 
       console.log(txjson);
@@ -146,7 +143,7 @@ export default function PageSign() {
 
       {document.hash && (
         <iframe
-          src={`http://localhost:3000/api/file/${document.hash}`}
+          src={`${process.env.NEXT_PUBLIC_API_URL}/file/${document.hash}`}
           width="100%"
           style={{ height: "100vh" }}
           scrolling="no"

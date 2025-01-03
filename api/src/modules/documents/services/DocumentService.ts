@@ -15,23 +15,30 @@ import mongoose from "mongoose";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
 import { NotificationService } from "./NotificationService";
+import { InternalServerErrorException } from "@/exceptions/InternalServerErrorException";
 
 export class DocumentService {
-  static getDocuments = async (wallet: string): Promise<IUserDocument[]> => {
-    if (!wallet) {
-      throw new BadRequestException("Owner wallet is required");
+  static async getDocuments(
+    wallet: string,
+    page: number,
+    limit: number
+  ): Promise<{ documents: any[]; total: number }> {
+    if (!wallet || typeof wallet !== "string" || wallet.trim().length === 0) {
+      throw new BadRequestException("A valid owner wallet is required");
     }
 
-    const documents: IUserDocument[] = await UserDocument.find({
-      owner: wallet,
-    })
-      // .select(
-      //   "-signedSigners"
-      // )
-      .sort({ createdAt: -1 });
+    const skip = (page - 1) * limit;
 
-    return documents;
-  };
+    const documents = await UserDocument.find({ owner: wallet }) 
+      .sort({ createdAt: -1 }) 
+      .skip(skip) 
+      .limit(limit) 
+      .lean();
+
+    const total = await UserDocument.countDocuments({ owner: wallet });
+
+    return { documents, total };
+  }
 
   static markDocumentAsSigned = async (
     documentId: string,
@@ -50,7 +57,7 @@ export class DocumentService {
     const document = await UserDocument.findOne({
       _id: documentId,
       signers: { $elemMatch: { _id: signerId } },
-    });
+    }).exec();
 
     if (!document) {
       throw new HttpException(404, "Document not found.");
@@ -106,7 +113,7 @@ export class DocumentService {
       throw new BadRequestException("Invalid document ID format.");
     }
 
-    const document = await UserDocument.findById(documentId);
+    const document = await UserDocument.findById(documentId).exec();
     if (!document) {
       throw new HttpException(404, "Document not found");
     }
@@ -174,7 +181,7 @@ export class DocumentService {
     const document = await UserDocument.findOne({
       _id: documentId,
       signers: { $elemMatch: { _id: signerId } },
-    });
+    }).exec();
 
     if (!document) {
       throw new HttpException(404, "Document not found");
@@ -217,7 +224,7 @@ export class DocumentService {
       throw new HttpException(400, "Invalid signers list or empty.");
     }
 
-    const document = await UserDocument.findById(documentId);
+    const document = await UserDocument.findById(documentId).exec();
     if (!document) {
       throw new NotFoundException("Document not found");
     }
@@ -252,7 +259,9 @@ export class DocumentService {
     const ext = path.extname(req.file.originalname);
     const filename = `${fileHash}${ext}`;
 
-    const filePath = path.join("storage", filename);
+    const storagePath = process.env.STORAGE_PATH || "/storage";
+
+    const filePath = path.join(storagePath, filename);
     fs.writeFileSync(filePath, req.file.buffer);
 
     const expirationTime = new Date(Date.now() + 20 * (24 * 60 * 60 * 1000));
@@ -283,7 +292,7 @@ export class DocumentService {
 
   static getDocumentPageCount = async (pdfPath: string) => {
     const pdfBytes = fs.readFileSync(pdfPath);
-    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
 
     const pageCount = pdfDoc.getPageCount();
 

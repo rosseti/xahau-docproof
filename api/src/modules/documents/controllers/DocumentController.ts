@@ -9,11 +9,18 @@ import DIDCreator from "@/modules/did/creators/DIDCreator";
 export class DocumentController {
   static async getDocuments(req: AuthRequest, res: Response): Promise<any> {
     const wallet = req.user!.sub;
+    const page = parseInt(req.query.page as string) || 1; 
+    const limit = parseInt(req.query.limit as string) || 10;
 
     try {
-      const documents = await DocumentService.getDocuments(wallet);
+      const { documents, total } = await DocumentService.getDocuments(wallet, page, limit);
 
-      return res.status(200).json({ documents });
+      return res.status(200).json({
+        documents,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+      });
     } catch (error) {
       return res
         .status(500)
@@ -30,7 +37,7 @@ export class DocumentController {
     const { txid } = req.body;
 
     try {
-      const document = await DocumentService.markDocumentAsSigned(
+      await DocumentService.markDocumentAsSigned(
         documentId,
         signerId,
         wallet,
@@ -159,18 +166,18 @@ export class DocumentController {
   }
 
   static async generatePDFProof(req: any, res: any): Promise<any> {
-    const hash = 'a0c2f6a2c45a6652fbaf416c4c31cb77175ec913692dfbcf3f453af92c478eda';
-    const owner = 'rM21rCMcTnifB7KyiYqBUrEdxkeecAeZdw';
-    const signingLink = `${process.env.XAPP_URL}sign/xyz/zzz`;
+    const hash =
+      "a0c2f6a2c45a6652fbaf416c4c31cb77175ec913692dfbcf3f453af92c478eda";
+    const owner = "rM21rCMcTnifB7KyiYqBUrEdxkeecAeZdw";
     const emailSubject = `Review and Sign: doc.pdf`;
 
     const txHash1 =
       "F9E0155050D5C1B02BB7CEBFE603E15D01674F48E059C28560E0F1D25A254EFD";
     const txHash2 =
       "2A4A4DD2DFA89671980318E09135DF776EFF4270835D32D29A6D3ED06D9CE430";
-    
+
     const didCreator = new DIDCreator();
-    
+
     const did1 = didCreator.createDID(txHash1);
     const did2 = didCreator.createDID(txHash2);
 
@@ -182,7 +189,8 @@ export class DocumentController {
     );
 
     const documentQr = await QrcodeService.generateQRCode(
-      `${process.env.XAPP_URL}file/${hash}`);
+      `${process.env.XAPP_URL}file/${hash}`
+    );
 
     const normalizedSigners = [
       {
@@ -192,7 +200,7 @@ export class DocumentController {
         qrcode: qrcode1,
         txHash: txHash1,
         signedAt: new Date(),
-        did: did1
+        did: did1,
       },
       {
         email: "diana@doe.com",
@@ -201,7 +209,7 @@ export class DocumentController {
         qrcode: qrcode2,
         txHash: txHash2,
         signedAt: new Date(),
-        did: did2
+        did: did2,
       },
     ];
     const emailService = new EmailService();

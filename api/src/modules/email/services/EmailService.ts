@@ -35,7 +35,7 @@ export class EmailService {
     const mailOptions = {
       from:
         process.env.SMTP_MAIL_FROM ||
-        '"Xahau Docproof" <docproof@xahau.network>',
+        '"Xahau Docproof" <postmaster@xahaudocproof.com>',
       to: recipient,
       subject,
       text: body.replace(/<\/?[^>]+(>|$)/g, ""),

@@ -8,7 +8,7 @@ const Footer = () => {
     <footer className="bg-gray-900 text-white py-12 px-4">
       <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
         <div>
-          <div class="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <img
               src="/app-icon.svg"
               alt="Xahau DocProof Logo"
@@ -64,12 +64,12 @@ const Footer = () => {
           <h4 className="font-bold mb-4">Legal</h4>
           <ul className="space-y-2">
             <li>
-              <a href="#" className="text-gray-300 hover:text-white">
+              <a href="/privacy" className="text-gray-300 hover:text-white">
                 Privacy Policy
               </a>
             </li>
             <li>
-              <a href="#" className="text-gray-300 hover:text-white">
+              <a href="/terms" className="text-gray-300 hover:text-white">
                 Terms of Service
               </a>
             </li>

@@ -31,7 +31,8 @@ const Header = () => {
               />
             </svg>
           </label>
-          <ul
+
+          {account && (<ul
             tabIndex={0}
             className="menu menu-sm dropdown-content mt-3 p-2 shadow bg-base-100 rounded-box w-52"
           >
@@ -51,10 +52,10 @@ const Header = () => {
                 Send Document
               </Link>
             </li>
-          </ul>
+          </ul>)}
         </div>
 
-        <a className="btn btn-ghost normal-case text-xl">
+        <a href="/" className="btn btn-ghost normal-case text-xl">
           <img
             src="/app-logo-horizontal-dark.svg"
             alt="Xaman Logo"
@@ -64,7 +65,7 @@ const Header = () => {
       </div>
 
       <div className="navbar-center hidden lg:flex">
-        <ul className="menu menu-horizontal px-1">
+        {account && (<ul className="menu menu-horizontal px-1">
           <li>
             <Link
               className={isActive("/doc/list") ? "active" : ""}
@@ -81,7 +82,7 @@ const Header = () => {
               Send Document
             </Link>
           </li>
-        </ul>
+        </ul>)}
       </div>
 
       <div className="navbar-end">
