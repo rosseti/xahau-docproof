@@ -9,7 +9,7 @@ import path from "path";
 import connectToDatabase from "../infra/database";
 
 /* c8 ignore next */
-const PORT: number = parseInt(`${process.env.PORT || 3000}`);
+const PORT: number = parseInt(`${process.env.API_PORT || 3001}`);
 
 const app = express();
 
