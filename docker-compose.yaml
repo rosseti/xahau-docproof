@@ -34,7 +34,7 @@ services:
     ports:
       - "${XAPP_PORT:-3000}:3000"
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      - NODE_ENV=production
       - API_URL=${API_URL:-http://xahau-docproof-api:3001/api/}
     command: npm run build && npm run start
 
