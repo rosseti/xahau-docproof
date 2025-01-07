@@ -135,6 +135,10 @@ app.get("/api/file/:hash", (req: any, res: any) => {
   });
 });
 
+app.get("/api/health", async (req: any, res: any) => {
+  return res.status(200).json({ status: "ok" });
+});
+
 /* c8 ignore start */
 if (process.argv.includes("--run"))
   app.listen(PORT, async () => {
