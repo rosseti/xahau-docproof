@@ -4,7 +4,7 @@ WORKDIR /usr/src/app/
 
 COPY . .
 
-RUN apk update && apk add --no-cache wget && apk --no-cache add openssl wget && apk add ca-certificates && update-ca-certificates
+RUN apk update && apk add --no-cache wget && apk --no-cache add curl openssl wget && apk add ca-certificates && update-ca-certificates
 
 RUN wget -qO- "https://github.com/fgrehm/docker-phantomjs2/releases/download/v2.0.0-20150722/dockerized-phantomjs.tar.gz" | tar xz -C / \
     && npm install -g phantomjs-prebuilt --force

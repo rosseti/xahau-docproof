@@ -73,6 +73,11 @@ export default function PageList() {
               <span className="loading loading-spinner mr-5"></span> Loading...
             </div>
           }
+          endMessage={
+            <div className="text-center py-4 flex justify-center">
+              <span className="text-gray-500">No more documents</span>
+            </div>
+          }
           scrollThreshold={0.9}
         >
           <div className="w-full  text-gray-700">

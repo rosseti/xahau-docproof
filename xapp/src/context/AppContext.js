@@ -22,6 +22,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const xummReady = () => {
       console.log("XUMM Ready.");
+      
       xumm.user.account.then((usrAccount) => {
         setAccount(usrAccount);
         console.log('usrAccount', usrAccount);
