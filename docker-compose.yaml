@@ -23,6 +23,11 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - MONGO_URI=${MONGO_URI:-mongodb://xahau-docproof-db:27017/xahau-docproof}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     command: ["npm", "run", "serve"]
     volumes:
       - storage-data:/storage
@@ -34,9 +39,14 @@ services:
     ports:
       - "${XAPP_PORT:-3000}:3000"
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      - NODE_ENV=production
       - API_URL=${API_URL:-http://xahau-docproof-api:3001/api/}
-    command: ["npm", "run", "dev"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: bash -c "npm install --omit=dev && npm run build && npm run start"
 
 volumes:
   storage-data:

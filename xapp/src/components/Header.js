@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const Header = () => {
-  const { account, logout } = useContext(AppContext);
+  const { account, logout, xumm } = useContext(AppContext);
   const pathname = usePathname();
 
   const isActive = (name) => pathname.startsWith(name) && pathname !== "/";
@@ -86,7 +86,7 @@ const Header = () => {
       </div>
 
       <div className="navbar-end">
-        {account ? (
+        {account && !xumm.runtime.xapp ? (
           <button
             className="btn btn-outline shadow-lg"
             onClick={() => logout()}
