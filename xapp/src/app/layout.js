@@ -3,6 +3,7 @@
 import localFont from "next/font/local";
 import { AppProvider, AppContext } from "@/context/AppContext";
 import React from "react";
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 import { useRouter, usePathname } from 'next/navigation';
 import Header from "@/components/Header";
@@ -33,7 +34,6 @@ export default function RootLayout({ children }) {
     .filter(url => pathname.startsWith(url)).length > 0
     ||
     pathname === '/';
-  console.log(pathname);
 
   return (
       <AppProvider>
@@ -44,6 +44,7 @@ export default function RootLayout({ children }) {
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
             <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet" />
+            {process.env.NEXT_PUBLIC_GA_ID && (<GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />)}
           </head>
           <body
             className={`${geistSans.variable} ${geistMono.variable} antialiased`}
