@@ -16,6 +16,7 @@ RUN echo "" > /tmp/openssl.cnf
 
 RUN npm install
 
-EXPOSE 3001
+# Disable, needs `--expose` during `docker run` to prevent collisions
+# EXPOSE 3001
 
 CMD ["npm", "run", "serve"]
