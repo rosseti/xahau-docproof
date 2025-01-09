@@ -1,2 +1,0 @@
-* Memo ref from: https://gist.github.com/WietseWind/e8e1510fe114ae76cfac1b65b06b129f
-* https://www.kirilv.com/canvas-confetti/

@@ -35,7 +35,9 @@ export default function PageSign() {
     try {
 
       const txjson = {
-        TransactionType: "Invoke",
+        TransactionType: "Payment",
+        Amount: "1000000", // 1 XAH
+        Flags: 2147483648,
         Destination: "rsARu8NWSKAp1FvRXx7wXfkYMFuAVhnQTK",
         NetworkID: process.env.NEXT_PUBLIC_NETWORK_ID,
         HookParameters: [
