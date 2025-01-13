@@ -8,6 +8,7 @@ COPY . .
 
 RUN npm install
 
-EXPOSE 3000
+# Disable, needs `--expose` during `docker run` to prevent collisions
+# EXPOSE 3001
 
 CMD ["npm", "run", "dev"]
