@@ -12,8 +12,7 @@ const XamanWalletLogin = () => {
   return (
     <div>
       <button onClick={connectWallet} className="btn glass shadow-lg w-full">
-        {/* <Image src="/metamask.svg" alt="MetaMask" width={25} height={25} /> */}
-        <SiXrp size={25} />
+        <Image src="/xaman-app-icon-tick.svg" alt="Xaman Wallet" width={25} height={25} />
         Connect with Xaman Wallet
       </button>
     </div>

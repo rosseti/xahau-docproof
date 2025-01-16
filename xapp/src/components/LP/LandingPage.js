@@ -77,7 +77,7 @@ import Footer from "./Footer";
                 </div>
               </div>
               <div className="relative">
-                  <iframe width="560" height="315" src="https://www.youtube.com/embed/vM8IWlYkHPA?si=MPz20vGHmKMmBVRU&amp;rel=0&amp;controls=1&amp;showinfo=0&amp;autoplay=1" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
+                  <iframe width="100%" height="315" src="https://www.youtube.com/embed/vM8IWlYkHPA?si=MPz20vGHmKMmBVRU&amp;rel=0&amp;controls=1&amp;showinfo=0&amp;autoplay=1&amp;mute=1" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
               </div>
             </div>
           </section>
