@@ -58,8 +58,8 @@ const Header = () => {
         <a href="/" className="btn btn-ghost normal-case text-xl">
           <img
             src="/app-logo-horizontal-dark.svg"
-            alt="Xaman Logo"
-            width={160}
+            alt="Xahau Docproof Logo"
+            width={140}
           />
         </a>
       </div>

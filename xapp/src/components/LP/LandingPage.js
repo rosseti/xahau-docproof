@@ -74,34 +74,10 @@ import Footer from "./Footer";
                   <button onClick={() => router.push("/login")}  className="bg-blue-600 text-white px-8 py-3.5 rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center shadow-lg hover:shadow-xl">
                     Get Started <ChevronRight className="ml-2" />
                   </button>
-                  {/* <div className="flex items-center">
-            <div className="flex -space-x-3">
-              {[1, 2, 3, 4].map((i) => (
-                <img 
-                  key={i}
-                  src={`/api/placeholder/40/40?${i}`} 
-                  alt={`User ${i}`}
-                  className="w-10 h-10 rounded-full border-2 border-white"
-                />
-              ))}
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-700">+1000 Users</p>
-              <p className="text-xs text-gray-500">Trusted Worldwide</p>
-            </div>
-          </div> */}
                 </div>
               </div>
               <div className="relative">
-                <div className="absolute -inset-4 bg-blue-300/10 rounded-xl blur-2xl"></div>
-                <img
-                  src="/images/app/blockchain-signing-modern.svg"
-                  alt="Docproof Interface"
-                  className="relative z-10 rounded-full w-80 h-80 object-cover shadow-2xl transform transition-transform hover:scale-105"
-                />
-                <div className="absolute bottom-0 right-0 mb-4 mr-4 bg-white/80 backdrop-blur-md rounded-lg px-4 py-2 shadow-lg">
-                  <p className="text-xs text-gray-700">🔒 256-bit Encryption</p>
-                </div>
+                  <iframe width="560" height="315" src="https://www.youtube.com/embed/vM8IWlYkHPA?si=MPz20vGHmKMmBVRU&amp;rel=0&amp;controls=1&amp;showinfo=0&amp;autoplay=1" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
               </div>
             </div>
           </section>
