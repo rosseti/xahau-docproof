@@ -45,16 +45,16 @@ export default function RootLayout({ children }) {
             <meta name="keywords" content="Document Authentication, Proof of Existence, Document Integrity, Blockchain, Digital Signature, Xahau Ledger, XRPL, Cryptography, Document Verification, Document Security" />
             <meta name="author" content="Xahau DocProof" />
 
-            <meta name="og:title" content="Xahau DocProof" />
-            <meta name="og:description" content="Transform document workflows with cryptographically sealed, instantly verifiable digital signatures powered by cutting-edge blockchain technology." />
-            <meta name="og:type" content="website" />
-            <meta name="og:image" content={`${process.env.NEXT_PUBLIC_APP_URL}social.jpg`} />
+            <meta property="og:title" content="Xahau DocProof" />
+            <meta property="og:description" content="Transform document workflows with cryptographically sealed, instantly verifiable digital signatures powered by cutting-edge blockchain technology." />
+            <meta property="og:type" content="website" />
+            <meta property="og:image" content={`${process.env.NEXT_PUBLIC_APP_URL}social.jpg`} />
 
-            <meta name="twitter:card" content="summary_large_image" />
-            <meta name="twitter:title" content="Xahau DocProof" />
-            <meta name="twitter:description" content="Transform document workflows with cryptographically sealed, instantly verifiable digital signatures powered by cutting-edge blockchain technology." />
-            <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_APP_URL}social.jpg`} />
-            <meta name="twitter:site" content="@XahauDocproof" />
+            <meta property="twitter:card" content="summary_large_image" />
+            <meta property="twitter:title" content="Xahau DocProof" />
+            <meta property="twitter:description" content="Transform document workflows with cryptographically sealed, instantly verifiable digital signatures powered by cutting-edge blockchain technology." />
+            <meta property="twitter:image" content={`${process.env.NEXT_PUBLIC_APP_URL}social.jpg`} />
+            <meta property="twitter:site" content="@XahauDocproof" />
 
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
