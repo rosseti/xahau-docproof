@@ -48,12 +48,12 @@ export default function RootLayout({ children }) {
             <meta name="og:title" content="Xahau DocProof" />
             <meta name="og:description" content="Transform document workflows with cryptographically sealed, instantly verifiable digital signatures powered by cutting-edge blockchain technology." />
             <meta name="og:type" content="website" />
-            <meta name="og:image" content="/social.jpg" />
+            <meta name="og:image" content={`${process.env.NEXT_PUBLIC_APP_URL}social.jpg`} />
 
             <meta name="twitter:card" content="summary_large_image" />
             <meta name="twitter:title" content="Xahau DocProof" />
             <meta name="twitter:description" content="Transform document workflows with cryptographically sealed, instantly verifiable digital signatures powered by cutting-edge blockchain technology." />
-            <meta name="twitter:image" content="/social.jpg" />
+            <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_APP_URL}social.jpg`} />
             <meta name="twitter:site" content="@XahauDocproof" />
 
             <link rel="preconnect" href="https://fonts.googleapis.com" />
