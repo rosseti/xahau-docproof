@@ -87,7 +87,7 @@ export default function PageStatus() {
               className="btn btn-default mb-4 w-full shadow-lg"
               onClick={() =>
                 window.open(
-                  `${process.env.NEXT_PUBLIC_API_URL}/file/${document.hash}`
+                  `${process.env.NEXT_PUBLIC_APP_URL}file/${document.hash}`
                 )
               }
             >
