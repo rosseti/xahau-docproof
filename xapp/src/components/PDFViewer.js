@@ -15,10 +15,7 @@ const PDFViewer = ({ hash, docId, signerId }) => {
     if (!hash) return;
 
     const fetchPdf = async () => {
-      const headers = {
-        Authorization: `Bearer ${await xumm.environment.bearer}`,
-      };
-
+      let headers;
       let queryString = "";
 
       if (docId && signerId) {
@@ -26,6 +23,12 @@ const PDFViewer = ({ hash, docId, signerId }) => {
       }
 
       try {
+        const bearer = await xumm.environment.bearer;
+        if (!bearer) throw new Error('No bearer token available');
+        headers = {
+          Authorization: `Bearer ${bearer}`,
+        };
+
         const response = await axios.get(
           `${process.env.NEXT_PUBLIC_API_URL}/file/${hash}${queryString}`,
           {
@@ -39,11 +42,12 @@ const PDFViewer = ({ hash, docId, signerId }) => {
         );
         setPdfUrl(fileURL);
       } catch (error) {
-        toast.error(`Error getting document: ${error.message}`);
+        toast.error(`Authentication failed: ${error.message}`);
       } finally {
         setLoading(false);
       }
     };
+    
     fetchPdf();
 
     return () => {
@@ -62,7 +66,7 @@ const PDFViewer = ({ hash, docId, signerId }) => {
           src={pdfUrl}
           width="100%"
           height="100%"
-          style={{ dusplay: "block" }}
+          style={{ display: "block" }}
         />
       )}
     </>
