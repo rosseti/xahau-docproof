@@ -7,9 +7,10 @@ import { AppContext } from "@/context/AppContext";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
 import PageLoader from "@/components/PageLoader";
+import PDFViewer from "@/components/PDFViewer";
 import ApiService from "@/services/APIService";
 import { processError } from "@/utils/solidity";
 import { FileSignature } from "lucide-react";
@@ -27,13 +28,11 @@ export default function PageSign() {
   const [isAlreadySigned, setAlreadySigned] = useState(false);
 
   const { account, isLoading } = useContext(AppContext);
-  const router = useRouter();
 
   const signDocumentClickHandler = async (event) => {
     setSigning(true);
     event.preventDefault();
     try {
-
       const txjson = {
         TransactionType: "Payment",
         Amount: "1000000", // 1 XAH
@@ -52,7 +51,7 @@ export default function PageSign() {
               HookParameterValue: document.idHash,
             },
           },
-        ]
+        ],
       };
 
       console.log(txjson);
@@ -125,7 +124,7 @@ export default function PageSign() {
         });
       });
   }, [apiService]);
-  
+
   if (isLoading || !xumm) return <PageLoader />;
 
   return (
@@ -143,12 +142,18 @@ export default function PageSign() {
       )}
 
       {document.hash && (
-        <iframe
-          src={`${process.env.NEXT_PUBLIC_API_URL}/file/${document.hash}`}
-          width="100%"
-          style={{ height: "100vh" }}
-          scrolling="no"
-        />
+        <div
+          style={{
+            height: "100vh",
+            width: "100%",
+            position: "fixed",
+            top: "0",
+            left: "0",
+            zIndex: "0",
+          }}
+        >
+          <PDFViewer hash={document.hash} docId={docId} signerId={signerId} />
+        </div>
       )}
 
       <div className="fixed bottom-4 right-10 z-10">

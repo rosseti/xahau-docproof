@@ -19,11 +19,13 @@ if (process.argv.includes("--run")) app.use(morgan("tiny"));
 
 app.use(express.json());
 
-import { router } from "@/shared/infra/http/routes";
-import { EmailService } from "@/modules/email/services/EmailService";
+import { authenticateJWT } from "@/modules/auth/middleware/authenticateJWT";
 import DIDCreator from "@/modules/did/creators/DIDCreator";
-import QrcodeService from "@/modules/documents/services/QrcodeService";
+import UserDocument from "@/modules/documents/models/UserDocument";
 import { DocumentService } from "@/modules/documents/services/DocumentService";
+import QrcodeService from "@/modules/documents/services/QrcodeService";
+import { EmailService } from "@/modules/email/services/EmailService";
+import { router } from "@/shared/infra/http/routes";
 const pdf = require("html-pdf");
 
 app.use("/api", router);
@@ -90,7 +92,7 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
     const options = {
       format: "A4",
       orientation: "portrait",
-      border: '1mm',        
+      border: "1mm",
       paginationOffset: 1,
       quality: 100,
       childProcessOptions: {
@@ -112,8 +114,28 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
   }
 });
 
-app.get("/api/file/:hash", (req: any, res: any) => {
+app.get("/api/file/:hash", authenticateJWT, async (req: any, res: any) => {
   const { hash } = req.params;
+  const userWallet = req.user!.sub;
+  const { docId, signerId } = req.query;
+
+  let document;
+
+  if (docId && signerId) {
+    document = await DocumentService.getDocumentByIdAndSignerId(
+      docId,
+      signerId
+    );
+  } else {
+    document = await UserDocument.findOne({
+      hash,
+      $or: [{ owner: userWallet }, { "signers.wallet": userWallet }],
+    }).exec();
+  }
+
+  if (!document) {
+    return res.status(404).json({ message: "Document not found" });
+  }
 
   const storagePath = process.env.STORAGE_PATH || "/storage";
 

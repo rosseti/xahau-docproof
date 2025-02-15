@@ -12,6 +12,7 @@ export default class DIDResolver {
   }
 
   async resolveDID(did: string) {
+    did = decodeURIComponent(did);
     if (this.cache.has(did)) {
       const cached = this.cache.get(did);
       if (Date.now() - cached.timestamp < this.cacheTimeout) {
@@ -31,7 +32,7 @@ export default class DIDResolver {
     // Processar parâmetros da query
     const params = new URLSearchParams(queryPart);
     const networkName = params.get("network") || "xahau";
-    const networkType = params.get("network_type") || "testnet";
+    const networkType = params.get("network_type") || "mainnet";
 
     if (method !== this.method) {
       throw new Error(`Unknown DID method: ${method}`);
