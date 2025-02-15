@@ -14,7 +14,7 @@ export const AppProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    setIsLoading(false);
+    setIsLoading(true);
 
     setXumm(new Xumm(process.env.NEXT_PUBLIC_XAMAN_API_KEY));
   }, []);
@@ -27,6 +27,8 @@ export const AppProvider = ({ children }) => {
         setAccount(usrAccount);
         console.log('usrAccount', usrAccount);
       });
+
+      setIsLoading(false);
     };
     const xummSuccess = async () => {
       {

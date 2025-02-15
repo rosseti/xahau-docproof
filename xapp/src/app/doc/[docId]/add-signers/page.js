@@ -9,11 +9,10 @@ import { toast } from "react-toastify";
 import EmailRecipients from "@/components/UI/EmailRecipients";
 import { useParams, useRouter } from "next/navigation";
 
+import PDFViewer from "@/components/PDFViewer";
 import PageLoader from "@/components/PageLoader";
-import ApiService, {
-  addAuthorizedSigners
-} from "@/services/APIService";
-import { FiArrowRight, FiChevronRight, FiPlus } from "react-icons/fi";
+import ApiService from "@/services/APIService";
+import { FiArrowRight } from "react-icons/fi";
 
 export default function PageAddSigners() {
   const { account, isLoading } = useContext(AppContext);
@@ -77,14 +76,11 @@ export default function PageAddSigners() {
       <div className="container mx-auto pt-10 px-4 w-100">
         <div className="grid grid-cols-2 gap-4">
           <div className="p-4">
+            <div style={{ height: "50vh" }}>
             {document.hash && (
-              <iframe
-                src={`${process.env.NEXT_PUBLIC_API_URL}/file/${document.hash}`}
-                width="100%"
-                style={{ height: "50vh" }}
-                scrolling="no"
-              />
+              <PDFViewer hash={document.hash} />
             )}
+            </div>
 
             <div className="badge badge-primary badge-outline">
               {document.name}
