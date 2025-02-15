@@ -46,11 +46,27 @@ int64_t hook(int32_t reserved)
     } Signature;    
     Signature sig;
 
+    uint8_t config_ns[32] = { 0xB7U, 0xBDU, 0xB8U, 0x4FU, 0x49U, 0xCFU, 0x89U, 0x53U, 0xA9U, 0xBAU, 0x42U, 0x62U, 0xDAU, 0xEFU, 0x8CU, 0xA1U, 0x2AU, 0x42U, 0x90U, 0x69U, 0x30U, 0x0BU, 0xCFU, 0xB7U, 0x7DU, 0x43U, 0x63U, 0x43U, 0x2AU, 0x31U, 0x35U, 0x27U };
+
     otxn_field(SBUF(sig.signer_acc), sfAccount);
     hook_account(ACC_OUT, 20);
     if(BUFFER_EQUAL_20(sig.signer_acc, ACC_OUT))
         DONE("DP: Outgoing Transaction.");
-    
+
+    uint64_t fee = 0;
+    uint64_t reserve = 0;
+    if(BUFFER_EQUAL_20(sig.signer_acc, txn + 102)) {
+        if(otxn_param(SVAR(fee), "FEE", 3) != 8)
+            NOPE("DP: New Fee not passed.");
+        if(state_foreign_set(SVAR(fee), "FEE", 3, SBUF(config_ns), ACC_OUT, 20) != 8)
+            NOPE("DP: Fee not set.");
+        if(otxn_param(SVAR(reserve), "RESERVE", 7) != 8)
+            NOPE("DP: New reserve not passed.");
+        if(state_foreign_set(SVAR(reserve), "RESERVE", 7, SBUF(config_ns), ACC_OUT, 20) != 8)
+            NOPE("DP: Reserve not set.");            
+        DONE("DP: DocProof Fee Updated.");
+    }
+        
     if (otxn_param(SBUF(sig.doc_id), "DocId", 5) < 32)
         NOPE("DP: Incoming txn without docId, bailing.");
 
@@ -71,13 +87,19 @@ int64_t hook(int32_t reserved)
     uint64_t otxn_drops = AMOUNT_TO_DROPS(amount);
     int64_t amount_xfl = float_set(-6, otxn_drops);
 
-    if(float_compare(amount_xfl, 6089866696204910592, COMPARE_LESS) == 1)
-        NOPE("DP: 1 XAH per document signing.");    
+    if(state_foreign(SVAR(fee), "FEE", 3, SBUF(config_ns), ACC_OUT, 20) != 8)
+        NOPE("DP: Fee not set.");
+
+    if(float_compare(amount_xfl, fee, COMPARE_LESS) == 1)
+        NOPE("DP: Please check the fee for document signing.");    
 
     if (state_set(SVAR(sig), SBUF(state_key_hex)) < 0)
         NOPE("DP: Error registering signature.");
 
-    int64_t forward_amt =   float_sum(amount_xfl, float_negate(6071852297695428608));
+    if(state_foreign(SVAR(reserve), "RESERVE", 7, SBUF(config_ns), ACC_OUT, 20) != 8)
+        NOPE("DP: Reserve not set.");   
+
+    int64_t forward_amt = float_sum(amount_xfl, float_negate(reserve));
     {
         uint64_t drops = float_int(forward_amt, 6, 1); 
         uint8_t *b = AMOUNT_OUT; 
