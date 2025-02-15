@@ -4,9 +4,9 @@ import JsonView from '@uiw/react-json-view';
 import axios from "axios";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FiLoader, FiSearch } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 import { toast } from "react-toastify";
-const beautify = require("js-beautify").js;
+// const beautify = require("js-beautify").js;
 
 export default function PageDid() {
   const { did } = useParams();
@@ -24,33 +24,34 @@ export default function PageDid() {
         )}`
       );
 
-      setDidDetails(response.data);
-      setUserDID(decodeURIComponent(did));
-
-      if (response.data.didDocument !== null) {
-        toast.success("DID Document resolved successfully!");
+      if (response.data.didDocument === null) {
+        throw new Error("DID Document not resolved");
       }
 
-      setLoading(false);
+      setDidDetails(response.data);
+      
+      toast.success("DID Document resolved successfully!");
 
-      return response.data;
     } catch (error) {
-      console.error("Error getting did: ", error);
+      setDidDetails(null);
+      toast.error(`Error getting did: ${error}`);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   useEffect(() => {
     if (did !== undefined && did.length > 0) {
       const myDid = did.shift();
-      if (myDid)
-        setUserDID(decodeURIComponent(myDid));
+      if (myDid) {
+        const uDid = decodeURIComponent(myDid);
+        setUserDID(uDid);
+      }
     }
   }, [did]);
 
   useEffect(() => {
-    if (userDID.length > 0)
+    if (userDID.length > 77)
       resolveDID(userDID);
   }, [userDID]);
 

@@ -1,10 +1,19 @@
 export default class DIDCreator {
   private method: string = "docproof";
   private network: string = "xahau";
-  private networkType: string = "testnet"; // or 'testnet'
+  private networkType: string = "mainnet"; // or 'testnet'
 
-  createDID(txHash: string): string {
-    return `did:${this.method}:${txHash}?network=${this.network}&network_type=${this.networkType}`;
+  createDID(txHash: string): string 
+  {
+    let didString = `did:${this.method}:${txHash}`;
+
+    if (process.env.NEXT_PUBLIC_NETWORK_ID == "21338") {
+      this.networkType = "testnet";
+      
+      didString += `?network=${this.network}&network_type=${this.networkType}`;
+    }
+
+    return didString;
   }
 
   setEnvironment(networkType: "mainnet" | "testnet") {

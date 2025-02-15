@@ -54,7 +54,7 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
 
     const owner = document.owner;
     const documentQr = await QrcodeService.generateQRCode(
-      `${process.env.XAPP_URL}file/${document.hash}`
+      `${process.env.XAPP_URL}api/file/${document.hash}`
     );
 
     let normalizedSigners: Array<any> = [];
