@@ -48,10 +48,6 @@ services:
       retries: 3
     command: bash -c "npm install --omit=dev && npm run build && npm run start"
 
-volumes:
-  storage-data:
-  mongo-data:
-
 networks:
   default:
     name: xahau-docproof-network
