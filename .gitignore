@@ -3,6 +3,10 @@
 
 .scannerwork/
 
+/whitepaper/.pandoc/dist/*
+!/whitepaper/.pandoc/dist/.gitignore
+/whitepaper/XahauDocproof-Whitepaper.pdf
+
 /api/storage/*
 !/api/storage/.gitignore
 
