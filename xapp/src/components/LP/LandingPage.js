@@ -76,10 +76,14 @@ const LandingPage = () => {
               <div className="flex items-center space-x-6">
                 <button
                   onClick={() => router.push("/login")}
-                  className="bg-blue-600 text-white px-8 py-3.5 rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center shadow-lg hover:shadow-xl"
+                  className="btn btn-primary"
                 >
                   Get Started <ChevronRight className="ml-2" />
                 </button>
+                <a href="/XahauDocproof-Whitepaper.pdf" className="btn btn-outlined" target="_blank">
+                  Download Whitepaper
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" size="18" class="lucide lucide-file-digit-icon"><rect width="4" height="6" x="2" y="12" rx="2"></rect><path d="M14 2v6h6"></path><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path><path d="M10 12h2v6"></path><path d="M10 18h4"></path></svg>
+                </a>
               </div>
             </div>
             <div className="relative">

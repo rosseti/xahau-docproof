@@ -1,5 +1,5 @@
 import React from "react";
-import { Twitter } from "lucide-react";
+import { Twitter, Youtube } from "lucide-react";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -33,11 +33,31 @@ const Footer = () => {
                 <Twitter className="mr-2" size={20} /> Twitter
               </a>
             </li>
+            <li>
+              <a
+                href="https://youtube.com/@XahauDocproof"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center text-gray-300 hover:text-white"
+              >
+                <Youtube className="mr-2" size={20} /> Youtube
+              </a>
+            </li>
           </ul>
         </div>
         <div>
           <h4 className="font-bold mb-4">Resources</h4>
           <ul className="space-y-2">
+          <li>
+              <a
+                href="/XahauDocproof-Whitepaper.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-300 hover:text-white"
+              >
+                Whitepaper
+              </a>
+            </li>
             <li>
               <a
                 href="https://xahau.network/"
