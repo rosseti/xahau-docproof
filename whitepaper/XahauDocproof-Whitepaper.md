@@ -1,7 +1,7 @@
 ---
 title: "Xahau DocProof: A Blockchain-Based Solution for Secure Document Signing"
 author: |
-  | Andrei Rosseti, Wietse Wind, Satish
+  | Andrei Rosseti, Wietse Wind, Satish Bhadrachar
   | \href{https://xahaudocproof.com/}{xahaudocproof.com}
 date: "February 18, 2025"
 url: "https://xahaudocproof.com/"
