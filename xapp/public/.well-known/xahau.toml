@@ -1,0 +1,25 @@
+[METADATA]
+modified = 2025-02-19T07:30:00.000Z
+
+[ORGANIZATION]
+name = "Xahau Docproof"
+website = "https://xahaudocproof.com"
+twitter = "@xahaudocproof"
+email = "contact@xahaudocproof.com"
+country = "US"
+
+[[PRINCIPALS]]
+name = "A. Rosseti"
+email = "contact@xahaudocproof.com"
+
+[[ACCOUNTS]]
+address = "rNqe9wrMJM3D6hwcTtNmYTtfcjbHsHRDSg"
+network = "main"
+desc = "Xahau Docproof"
+
+[[ACCOUNTS]]
+address = "rBzkkQP7P2Dkq9faS51Dy2SfvCZDW3yjtu"
+network = "main"
+desc = "Xahau Docproof - Donations"
+
+# End of file
