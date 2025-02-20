@@ -17,7 +17,7 @@ header-includes:
   - \pagestyle{fancy}
   - \usepackage{hyperref}
   - \hypersetup{colorlinks=true, urlcolor=blue, linkcolor=blue}
-  - \fancyhead[R]{\includegraphics[width=1in]{../xapp/public/app-logo-horizontal-dark.png}}  # Ajuste o caminho da logo
+  - \fancyhead[R]{\includegraphics[width=1in]{../xapp/public/app-logo-horizontal-dark.png}} 
 ---
 
 ## 1. Introduction
