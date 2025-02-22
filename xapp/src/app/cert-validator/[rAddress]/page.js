@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useContext } from "react";
-import { getCertificatesInfoFromPDF } from "pdf-signature-reader";
+import PageLoader from "@/components/PageLoader";
+import Dropzone from "@/components/UI/Dropzone";
+import { parse } from "@iarna/toml";
 import { Buffer } from "buffer";
 import { useParams } from "next/navigation";
-import { AppContext } from "@/context/AppContext";
-import { Client } from "xrpl";
-import { parse } from "@iarna/toml";
 import forge from "node-forge";
-import PageLoader from "@/components/PageLoader";
+import { getCertificatesInfoFromPDF } from "pdf-signature-reader";
+import { useEffect, useState } from "react";
+import { Client } from "xrpl";
 
 const PDFCertificateExtractor = () => {
   const { rAddress } = useParams();
@@ -20,10 +20,9 @@ const PDFCertificateExtractor = () => {
   const [domainPubCert, setDomainPubCert] = useState([]);
 
   const [error, setError] = useState(null);
-  const { xumm } = useContext(AppContext);
 
-  const handleFileChange = async (event) => {
-    const selectedFile = event.target.files[0];
+  const handleFileChange = async (acceptedFile) => {
+    const selectedFile = acceptedFile;
     if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
       setCertificates([]);
@@ -38,18 +37,14 @@ const PDFCertificateExtractor = () => {
     try {
       console.log("Starting certificate extraction...");
 
-      
       const arrayBuffer = await pdfFile.arrayBuffer();
       const pdfBuffer = Buffer.from(arrayBuffer);
 
-      
       const certs = getCertificatesInfoFromPDF(pdfBuffer);
       console.log("Certificates extracted:", certs);
 
       if (certs.length > 0 && certs[0].length > 0) {
-        
-        setCertificates(certs[0]); 
-        
+        setCertificates(certs[0]);
       } else {
         setError(
           "No digital signature found in the PDF. Check if the PDF is signed."
@@ -62,7 +57,7 @@ const PDFCertificateExtractor = () => {
   };
 
   const fetchDomainFromLedger = async (accountAddress) => {
-    const client = new Client("wss://xahau.network"); 
+    const client = new Client("wss://xahau.network");
     client.apiVersion = 1;
     try {
       await client.connect();
@@ -104,7 +99,6 @@ const PDFCertificateExtractor = () => {
     }
   };
 
-  
   const validateToml = (tomlData, ledgerDomain) => {
     const validation = {
       rAddress: null,
@@ -113,16 +107,13 @@ const PDFCertificateExtractor = () => {
       messages: [],
     };
 
-    
     if (tomlData.VALIDATORS && tomlData.VALIDATORS.length > 0) {
-      validation.rAddress = tomlData.VALIDATORS[0].public_key; 
+      validation.rAddress = tomlData.VALIDATORS[0].public_key;
     } else if (tomlData.VALIDATOR && tomlData.VALIDATOR.public_key) {
       validation.rAddress = tomlData.VALIDATOR.public_key;
     }
 
-    
     if (validation.rAddress) {
-      
       validation.isValidAddress = isValidAddress(validation.rAddress);
       if (!validation.isValidAddress) {
         validation.messages.push("Invalid rAddress format.");
@@ -131,7 +122,6 @@ const PDFCertificateExtractor = () => {
       validation.messages.push("No rAddress found in the TOML.");
     }
 
-    
     if (tomlData.DOMAIN && tomlData.DOMAIN.domain) {
       validation.domainMatches =
         tomlData.DOMAIN.domain.toLowerCase() === ledgerDomain.toLowerCase();
@@ -165,22 +155,18 @@ const PDFCertificateExtractor = () => {
 
   const validateCertificate = (extractedCert, domainCertPem) => {
     try {
-      
       const extractedCertObj = forge.pki.certificateFromPem(
         extractedCert.pemCertificate
       );
       const domainCertObj = forge.pki.certificateFromPem(domainCertPem);
 
-      
       const extractedPubKey = forge.pki.publicKeyToPem(
         extractedCertObj.publicKey
       );
       const domainPubKey = forge.pki.publicKeyToPem(domainCertObj.publicKey);
 
-      
       const isValid = extractedPubKey === domainPubKey;
 
-      
       const extractedFingerprint = forge.md.sha256
         .create()
         .update(
@@ -246,10 +232,9 @@ const PDFCertificateExtractor = () => {
     const getToml = async () => {
       try {
         const tomlData = await fetchXrplToml();
-        
+
         if (isMounted) {
           setToml(tomlData);
-          
         }
       } catch (error) {
         if (isMounted) {
@@ -294,63 +279,121 @@ const PDFCertificateExtractor = () => {
   if (!domain || !toml || !domainPubCert) return <PageLoader />;
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      {rAddress}
-      {domain}
-      {domainPubCert}
-      <h2>Extract Certificate from Signed PDF</h2>
-      <input
-        type="file"
-        accept=".pdf"
-        onChange={handleFileChange}
-        style={{ marginBottom: "10px" }}
-      />
-      {file && <p>Selected file: {file.name}</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {certificates.length > 0 && (
-        <div>
-          <h3>Certificates Found:</h3>
-          {certificates.map((cert, index) => {
-            const validation = validateCertificate(cert, domainPubCert); 
+    <div className="container mx-auto pt-10 px-4">
+      <h1 className="text-4xl font-bold pb-6 text-center">
+        Certificate Validator
+      </h1>
 
-            return (
-              <div
-                key={index}
-                style={{
-                  marginBottom: "20px",
-                  border: "1px solid #ccc",
-                  padding: "10px",
-                }}
-              >
-                <h4>Certificate {index + 1}</h4>
-                <pre>
-                  <strong>VALID:</strong> {validation.isValid ? "Yes" : "No"}
-                  <br />
-                  <strong>Issued To:</strong> {cert.issuedTo.commonName}
-                  <br />
-                  <strong>Issued By:</strong> {cert.issuedBy.commonName}
-                  <br />
-                  <strong>Serial Number:</strong> {cert.serialNumber || "N/A"}
-                  <br />
-                  <strong>Valid From:</strong>{" "}
-                  {new Date(cert.validityPeriod.notBefore).toLocaleString()}
-                  <br />
-                  <strong>Valid To:</strong>{" "}
-                  {new Date(cert.validityPeriod.notAfter).toLocaleString()}
-                  <br />
-                  <strong>PEM Certificate:</strong>
-                  <br />
-                  {cert.pemCertificate}
-                </pre>
-              </div>
-            );
-          })}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column - Dropzone */}
+        <div className="p-4 border rounded-lg bg-gray-50 shadow-md">
+          <h3 className="text-lg font-medium pb-2">
+            Select or drag and drop your document below
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            No worries, we don't store your files.
+          </p>
+          <Dropzone onFileChange={handleFileChange} />
         </div>
-      )}
+
+        {/* Right Column - Validation Info */}
+        <div className="p-4 border rounded-lg bg-gray-50 shadow-md">
+          <h3 className="text-lg font-medium pb-2">Account Information</h3>
+
+          {domain && rAddress && (
+            <div className="mb-4 p-3 border rounded bg-white shadow-sm">
+              <p>
+                <strong>Domain:</strong> {domain}
+              </p>
+              <p>
+                <strong>rAddress:</strong> {rAddress}
+              </p>
+              {toml.PRINCIPALS.length > 0 &&
+                toml.PRINCIPALS.map((principal, index) => (
+                  <div key={index}>
+                    <h4 className="text-md font-semibold">
+                      Principal {index + 1}
+                    </h4>
+                    {principal.name && (
+                      <p>
+                        <strong>Name:</strong> {principal.name}
+                      </p>
+                    )}
+                    {principal.description && (
+                      <p>
+                        <strong>Description:</strong> {principal.description}
+                      </p>
+                    )}
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {certificates.length > 0 ? (
+            certificates.map((cert, index) => {
+              const validation = validateCertificate(cert, domainPubCert);
+              const isValid = validation.isValid;
+
+              return (
+                <div
+                  key={index}
+                  className={`p-4 my-4 border rounded-lg shadow-md ${
+                    isValid
+                      ? "border-green-500 bg-green-50"
+                      : "border-red-500 bg-red-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-semibold">
+                      Certificate {index + 1}
+                    </h4>
+                    <span
+                      className={`px-3 py-1 text-sm font-bold rounded ${
+                        isValid
+                          ? "bg-green-500 text-white"
+                          : "bg-red-500 text-white"
+                      }`}
+                    >
+                      {isValid ? "Valid" : "Invalid"}
+                    </span>
+                  </div>
+
+                  <p>
+                    <strong>Issued To:</strong> {cert.issuedTo.commonName}
+                  </p>
+                  <p>
+                    <strong>Issued By:</strong> {cert.issuedBy.commonName}
+                  </p>
+                  <p>
+                    <strong>Valid From:</strong>{" "}
+                    {new Date(cert.validityPeriod.notBefore).toLocaleString()}
+                  </p>
+                  <p>
+                    <strong>Valid To:</strong>{" "}
+                    {new Date(cert.validityPeriod.notAfter).toLocaleString()}
+                  </p>
+
+                  {validation.message && (
+                    <p
+                      className={`mt-2 text-sm font-medium ${
+                        isValid ? "text-green-600" : "text-red-600"
+                      }`}
+                    >
+                      {validation.message}
+                    </p>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-sm text-gray-500">
+              No certificate validated yet.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
 export default PDFCertificateExtractor;
-
-
