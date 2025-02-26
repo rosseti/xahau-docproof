@@ -42,8 +42,13 @@ const Dropzone = ({ onFileChange }) => {
         </div>)}
         
         {file && (
-          <div className="mt-4">
-            <p className="text-gray-700">Selected file: {file.name}</p>
+          <div className="mt-2">
+            <div className="grid grid-cols-[auto_100px] gap-2 items-center">
+              <div><p className="text-gray-700">Selected file: {file.name}</p></div>
+              <button  onClick={() => setFile(null)} className="btn btn-sm glass shadow-lg mt-4 px-4 py-2 w-auto">
+                Clear
+              </button>
+            </div>
             <embed 
               src={URL.createObjectURL(file)} 
               type="application/pdf" 

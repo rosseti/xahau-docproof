@@ -140,7 +140,7 @@ const PDFCertificateExtractor = () => {
   const fetchXahauDocProofCert = async () => {
     try {
       const response = await fetch(
-        `https://${domain}/.well-known/xahaudocproof-cert.pem`
+        `https://${domain}/.well-known/xahaudocproof/${rAddress}.pem`
       );
       if (!response.ok) throw new Error("xahaudocproof-cert.pem not found");
       const certificate = await response.text();
@@ -279,9 +279,9 @@ const PDFCertificateExtractor = () => {
   if (!domain || !toml || !domainPubCert) return <PageLoader />;
 
   return (
-    <div className="container mx-auto pt-10 px-4">
-      <h1 className="text-4xl font-bold pb-6 text-center">
-        Certificate Validator
+    <div className="container mx-auto pt-5 px-4">
+      <h1 className="text-4xl font-bold pb-4">
+        Docproof OpenCert
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -298,36 +298,6 @@ const PDFCertificateExtractor = () => {
 
         {/* Right Column - Validation Info */}
         <div className="p-4 border rounded-lg bg-gray-50 shadow-md">
-          <h3 className="text-lg font-medium pb-2">Account Information</h3>
-
-          {domain && rAddress && (
-            <div className="mb-4 p-3 border rounded bg-white shadow-sm">
-              <p>
-                <strong>Domain:</strong> {domain}
-              </p>
-              <p>
-                <strong>rAddress:</strong> {rAddress}
-              </p>
-              {toml.PRINCIPALS.length > 0 &&
-                toml.PRINCIPALS.map((principal, index) => (
-                  <div key={index}>
-                    <h4 className="text-md font-semibold">
-                      Principal {index + 1}
-                    </h4>
-                    {principal.name && (
-                      <p>
-                        <strong>Name:</strong> {principal.name}
-                      </p>
-                    )}
-                    {principal.description && (
-                      <p>
-                        <strong>Description:</strong> {principal.description}
-                      </p>
-                    )}
-                  </div>
-                ))}
-            </div>
-          )}
 
           {certificates.length > 0 ? (
             certificates.map((cert, index) => {
@@ -337,7 +307,7 @@ const PDFCertificateExtractor = () => {
               return (
                 <div
                   key={index}
-                  className={`p-4 my-4 border rounded-lg shadow-md ${
+                  className={`p-4 mb-4 border rounded-lg shadow-md ${
                     isValid
                       ? "border-green-500 bg-green-50"
                       : "border-red-500 bg-red-50"
@@ -385,10 +355,36 @@ const PDFCertificateExtractor = () => {
                 </div>
               );
             })
-          ) : (
-            <p className="text-sm text-gray-500">
-              No certificate validated yet.
-            </p>
+          ) : null}
+
+          {domain && rAddress && (
+            <div className="mb-4 p-3 border rounded bg-white shadow-sm">
+              <h3 className="text-lg font-medium pb-2">Account Information</h3>
+              <p>
+                <strong>Domain:</strong> {domain}
+              </p>
+              <p>
+                <strong>rAddress:</strong> {rAddress}
+              </p>
+              {toml.PRINCIPALS.length > 0 &&
+                toml.PRINCIPALS.map((principal, index) => (
+                  <div key={index}>
+                    <h4 className="text-md font-semibold">
+                      Principal {index + 1}
+                    </h4>
+                    {principal.name && (
+                      <p>
+                        <strong>Name:</strong> {principal.name}
+                      </p>
+                    )}
+                    {principal.description && (
+                      <p>
+                        <strong>Description:</strong> {principal.description}
+                      </p>
+                    )}
+                  </div>
+                ))}
+            </div>
           )}
         </div>
       </div>
