@@ -4,14 +4,18 @@ import PageLoader from "@/components/PageLoader";
 import Dropzone from "@/components/UI/Dropzone";
 import { parse } from "@iarna/toml";
 import { Buffer } from "buffer";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+
 import forge from "node-forge";
 import { getCertificatesInfoFromPDF } from "pdf-signature-reader";
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { Client } from "xrpl";
 
 const PDFCertificateExtractor = () => {
   const { rAddress } = useParams();
+  const searchParams = useSearchParams();
+  const destinationTag = searchParams.get("destinationTag");
   const [file, setFile] = useState(null);
   const [certificates, setCertificates] = useState([]);
 
@@ -19,14 +23,11 @@ const PDFCertificateExtractor = () => {
   const [toml, setToml] = useState(null);
   const [domainPubCert, setDomainPubCert] = useState([]);
 
-  const [error, setError] = useState(null);
-
   const handleFileChange = async (acceptedFile) => {
     const selectedFile = acceptedFile;
     if (selectedFile && selectedFile.type === "application/pdf") {
       setFile(selectedFile);
       setCertificates([]);
-      setError(null);
       await extractCertificate(selectedFile);
     } else {
       alert("Please select a valid PDF file");
@@ -46,13 +47,13 @@ const PDFCertificateExtractor = () => {
       if (certs.length > 0 && certs[0].length > 0) {
         setCertificates(certs[0]);
       } else {
-        setError(
+        toast.error(
           "No digital signature found in the PDF. Check if the PDF is signed."
         );
       }
     } catch (error) {
       console.error("Error processing the PDF:", error);
-      setError(`Error extracting the certificate: ${error.message}`);
+      toast.error(`Error extracting the certificate: ${error.message}`);
     }
   };
 
@@ -139,17 +140,23 @@ const PDFCertificateExtractor = () => {
 
   const fetchXahauDocProofCert = async () => {
     try {
+      const keyName = `${rAddress}${
+        destinationTag ? `-tag-${destinationTag}` : ""
+      }.pem`;
+
       const response = await fetch(
-        `https://${domain}/.well-known/xahaudocproof/${rAddress}.pem`
+        `https://${domain}/.well-known/xahaudocproof/${keyName}`
       );
-      if (!response.ok) throw new Error("xahaudocproof-cert.pem not found");
+      if (!response.ok) throw new Error("Public key not found");
       const certificate = await response.text();
 
       setDomainPubCert(certificate);
 
+      toast.success("Public key fetched successfully");
+
       return certificate;
     } catch (err) {
-      throw new Error(`Error fetching xahaudocproof-cert.pem: ${err.message}`);
+      throw new Error(`Error fetching public key: ${err.message}`);
     }
   };
 
@@ -210,10 +217,12 @@ const PDFCertificateExtractor = () => {
         setDomain(await fetchDomainFromLedger(rAddress));
 
         if (isMounted) {
+          toast.success("Domain fetched successfully");
           console.log(domain);
         }
       } catch (error) {
         if (isMounted) {
+          toast.error(error.message);
           console.error("Error:", error.message);
         }
       }
@@ -236,8 +245,11 @@ const PDFCertificateExtractor = () => {
         if (isMounted) {
           setToml(tomlData);
         }
+
+        toast.success("Toml fetched successfully");
       } catch (error) {
         if (isMounted) {
+          toast.error(error.message);
           console.error("Error:", error.message);
         }
       }
@@ -261,6 +273,7 @@ const PDFCertificateExtractor = () => {
         }
       } catch (error) {
         if (isMounted) {
+          toast.error(error.message);
           console.error(
             "Error fetching xahaudocproof-cert.pem:",
             error.message
@@ -280,10 +293,10 @@ const PDFCertificateExtractor = () => {
 
   return (
     <div className="container mx-auto pt-5 px-4">
-      <h1 className="text-4xl font-bold pb-4">
-        NextAudit
-      </h1>
-
+      <h1 className="text-4xl font-bold pb-4">NextAudit</h1>
+      {destinationTag && (
+        <p className="mb-4">destinationTag: {destinationTag}</p>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Dropzone */}
         <div className="p-4 border rounded-lg bg-gray-50 shadow-md">
@@ -298,64 +311,63 @@ const PDFCertificateExtractor = () => {
 
         {/* Right Column - Validation Info */}
         <div className="p-4 border rounded-lg bg-gray-50 shadow-md">
+          {certificates.length > 0
+            ? certificates.map((cert, index) => {
+                const validation = validateCertificate(cert, domainPubCert);
+                const isValid = validation.isValid;
 
-          {certificates.length > 0 ? (
-            certificates.map((cert, index) => {
-              const validation = validateCertificate(cert, domainPubCert);
-              const isValid = validation.isValid;
+                return (
+                  <div
+                    key={index}
+                    className={`p-4 mb-4 border rounded-lg shadow-md ${
+                      isValid
+                        ? "border-green-500 bg-green-50"
+                        : "border-red-500 bg-red-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-lg font-semibold">
+                        Certificate {index + 1}
+                      </h4>
+                      <span
+                        className={`px-3 py-1 text-sm font-bold rounded ${
+                          isValid
+                            ? "bg-green-500 text-white"
+                            : "bg-red-500 text-white"
+                        }`}
+                      >
+                        {isValid ? "Valid" : "Invalid"}
+                      </span>
+                    </div>
 
-              return (
-                <div
-                  key={index}
-                  className={`p-4 mb-4 border rounded-lg shadow-md ${
-                    isValid
-                      ? "border-green-500 bg-green-50"
-                      : "border-red-500 bg-red-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-semibold">
-                      Certificate {index + 1}
-                    </h4>
-                    <span
-                      className={`px-3 py-1 text-sm font-bold rounded ${
-                        isValid
-                          ? "bg-green-500 text-white"
-                          : "bg-red-500 text-white"
-                      }`}
-                    >
-                      {isValid ? "Valid" : "Invalid"}
-                    </span>
-                  </div>
-
-                  <p>
-                    <strong>Issued To:</strong> {cert.issuedTo.commonName}
-                  </p>
-                  <p>
-                    <strong>Issued By:</strong> {cert.issuedBy.commonName}
-                  </p>
-                  <p>
-                    <strong>Valid From:</strong>{" "}
-                    {new Date(cert.validityPeriod.notBefore).toLocaleString()}
-                  </p>
-                  <p>
-                    <strong>Valid To:</strong>{" "}
-                    {new Date(cert.validityPeriod.notAfter).toLocaleString()}
-                  </p>
-
-                  {validation.message && (
-                    <p
-                      className={`mt-2 text-sm font-medium ${
-                        isValid ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {validation.message}
+                    <p>
+                      <strong>Issued To:</strong> {cert.issuedTo.commonName}
                     </p>
-                  )}
-                </div>
-              );
-            })
-          ) : null}
+                    <p>
+                      <strong>Issued By:</strong> {cert.issuedBy.commonName}
+                    </p>
+                    <p>
+                      <strong>Valid From:</strong>{" "}
+                      {new Date(cert.validityPeriod.notBefore).toLocaleString()}
+                    </p>
+                    <p>
+                      <strong>Valid To:</strong>{" "}
+                      {new Date(cert.validityPeriod.notAfter).toLocaleString()}
+                    </p>
+
+                    {validation.message && (
+                      <p
+                        className={`mt-2 text-sm font-medium ${
+                          isValid ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {validation.message}
+                      </p>
+                    )}
+                  </div>
+                );
+              })
+            : null}
 
           {domain && rAddress && (
             <div className="mb-4 p-3 border rounded bg-white shadow-sm">
