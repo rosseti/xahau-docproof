@@ -341,9 +341,6 @@ const PDFCertificateExtractor = () => {
                     </div>
 
                     <p>
-                      <strong>Issued To:</strong> {cert.issuedTo.commonName}
-                    </p>
-                    <p>
                       <strong>Issued By:</strong> {cert.issuedBy.commonName}
                     </p>
                     <p>
