@@ -19,6 +19,7 @@
 # misc
 .DS_Store
 *.pem
+!/public/.well-known/xahaudocproof/*.pem
 
 # debug
 npm-debug.log*

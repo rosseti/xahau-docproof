@@ -28,6 +28,10 @@ import { EmailService } from "@/modules/email/services/EmailService";
 import { router } from "@/shared/infra/http/routes";
 const pdf = require("html-pdf");
 
+import { PDFDocument, rgb } from "pdf-lib";
+import { readFile } from "fs/promises";
+
+
 app.use("/api", router);
 
 function generatePdfAsync(html: string, options: any): Promise<Buffer> {
@@ -40,6 +44,52 @@ function generatePdfAsync(html: string, options: any): Promise<Buffer> {
       }
     });
   });
+}
+
+async function mergeProofAndOriginal(proofBuffer: Buffer, originalPath: string): Promise<Buffer> {
+  try {
+    if (!proofBuffer || !originalPath) {
+      throw new Error("Invalid input: proofBuffer and originalPath are required.");
+    }
+
+    const proofPdf = await PDFDocument.load(proofBuffer);
+    const originalPdfBytes = await readFile(originalPath);
+    const originalPdf = await PDFDocument.load(originalPdfBytes);
+
+    const mergedPdf = await PDFDocument.create();
+    const proofPages = await mergedPdf.copyPages(proofPdf, proofPdf.getPageIndices());
+    const originalPages = await mergedPdf.copyPages(originalPdf, originalPdf.getPageIndices());
+
+    originalPages.forEach(page => mergedPdf.addPage(page));
+    proofPages.forEach(page => mergedPdf.addPage(page));
+
+    return Buffer.from(await mergedPdf.save());
+  } catch (error) {
+    console.error("Error merging PDFs:", error);
+    throw new Error("Failed to merge PDFs");
+  }
+}
+
+async function addWatermark(pdfBuffer: Buffer, watermarkPath: string): Promise<Buffer> {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const watermarkImageBytes = await readFile(watermarkPath);
+  const watermarkImage = await pdfDoc.embedPng(watermarkImageBytes);
+
+  const { width, height } = watermarkImage;
+  const scale = 0.5;
+
+  pdfDoc.getPages().forEach(page => {
+    const { width: pageWidth, height: pageHeight } = page.getSize();
+    page.drawImage(watermarkImage, {
+      x: pageWidth / 2 - (width * scale) / 2,
+      y: pageHeight / 2 - (height * scale) / 2,
+      width: width * scale,
+      height: height * scale,
+      opacity: 0.2,
+    });
+  });
+
+  return Buffer.from(await pdfDoc.save());
 }
 
 app.get("/api/proof/:docId", async (req: any, res: any) => {
@@ -102,7 +152,19 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
       },
     };
 
-    const pdfBuffer = await generatePdfAsync(htmlContent, options);
+    let pdfBuffer = await generatePdfAsync(htmlContent, options);
+
+    const filePath = path.resolve(process.env.STORAGE_PATH || "/storage", `${document.hash}.pdf`);
+    if (fs.existsSync(filePath)) {
+      pdfBuffer = await mergeProofAndOriginal(pdfBuffer, filePath);
+    }
+
+    const watermarkPath = path.join(__dirname, "/../../../xapp/public/app-logo-horizontal-dark.png");
+    console.log(watermarkPath);
+    if (fs.existsSync(watermarkPath)) {
+      pdfBuffer = await addWatermark(pdfBuffer, watermarkPath);
+    }
+
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
