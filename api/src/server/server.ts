@@ -159,7 +159,7 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
       pdfBuffer = await mergeProofAndOriginal(pdfBuffer, filePath);
     }
 
-    const watermarkPath = path.join(__dirname, "/../../../xapp/public/app-logo-horizontal-dark.png");
+    const watermarkPath = path.join(__dirname, "/../../assets/app-logo-horizontal-dark.png");
     console.log(watermarkPath);
     if (fs.existsSync(watermarkPath)) {
       pdfBuffer = await addWatermark(pdfBuffer, watermarkPath);
