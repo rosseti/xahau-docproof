@@ -30,8 +30,6 @@ const ApiService = (xumm) => {
         Authorization: `Bearer ${await xumm.environment.bearer}`,
       };
 
-      console.log(headers);
-
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}`,
         {

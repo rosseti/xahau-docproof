@@ -48,7 +48,7 @@ export default function PageStatus() {
       if (totalSigned !== document.signers.length) {
         setTimeout(() => {
           fetchDocument();
-        }, 5000);
+        }, 10000);
       }
     });
   }

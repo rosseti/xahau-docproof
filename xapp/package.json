@@ -14,7 +14,7 @@
     "@next/third-parties": "^15.1.4",
     "@uiw/react-json-view": "^2.0.0-alpha.30",
     "asn1js": "^3.0.5",
-    "axios": "^1.7.7",
+    "axios": "^1.8.2",
     "canvas-confetti": "^1.9.3",
     "crypto": "^1.0.1",
     "daisyui": "^4.12.11",

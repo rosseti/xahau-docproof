@@ -51,22 +51,17 @@ export default function PageSign() {
               HookParameterValue: document.idHash,
             },
           },
-        ],
-        // custom_meta: {
-        //   docId,
-        //   docHash: document.hash,
-        //   signerId
-        // },
+        ]
       };
 
       await xumm.payload
         .createAndSubscribe(
           {
             custom_meta: {
-              identifier: docId,
               blob: {
                 docHash: document.hash,
-                signerId: signerId,
+                docId: docId,
+                signerId: signerId
               },
             },
             txjson

@@ -28,8 +28,8 @@ import { EmailService } from "@/modules/email/services/EmailService";
 import { router } from "@/shared/infra/http/routes";
 const pdf = require("html-pdf");
 
-import { PDFDocument, rgb } from "pdf-lib";
 import { readFile } from "fs/promises";
+import { PDFDocument } from "pdf-lib";
 import { Xumm } from "xumm";
 
 app.use("/api", router);
@@ -197,34 +197,53 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
 });
 
 app.post("/api/webhook/xumm", async (req: any, res: any) => {
+  const { NEXT_PUBLIC_XAMAN_API_KEY, XAMAN_SECRET_KEY } = process.env;
   const xummService = new Xumm(
-    process.env.NEXT_PUBLIC_XAMAN_API_KEY || "",
-    process.env.XAMAN_SECRET_KEY || ""
+    NEXT_PUBLIC_XAMAN_API_KEY || "",
+    XAMAN_SECRET_KEY || ""
   );
-  const payload = await xummService.payload?.get(req.body.meta.payload_uuidv4);
-  if (!payload?.meta.exists) return;
-  const docId: string | null | undefined = payload.custom_meta.identifier;
-  const signerId: string | null = payload.custom_meta.blob?.signerId as
-    | string
-    | null;
-  const signerWallet: string | null = payload.response.signer;
-  const txid: string | null = payload.response.txid;
 
-  if (payload.meta.signed && docId && signerId && signerWallet && txid) {
-    await DocumentService.markDocumentAsSigned(
-      docId,
-      signerId,
-      signerWallet,
-      txid
-    );
+  try {
+    const payloadUuid = req.body?.meta?.payload_uuidv4;
+    if (!payloadUuid) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid payload UUID" });
+    }
+
+    const payload = await xummService.payload?.get(payloadUuid);
+    if (!payload?.meta?.exists) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "Payload not found" });
+    }
+
+    const docId = payload.custom_meta?.blob?.docId as string;
+    const signerId = payload.custom_meta?.blob?.signerId as string;
+    const signer = payload.response?.signer;
+    const txid = payload.response?.txid;
+
+    if (!docId || !signerId || !signer || !txid) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required fields in payload",
+      });
+    }
+
+    if (
+      payload.meta.signed &&
+      payload.response.dispatched_result === "tesSUCCESS"
+    ) {
+      await DocumentService.markDocumentAsSigned(docId, signerId, signer, txid);
+    }
+
+    res
+      .status(200)
+      .json({ status: "ok", message: "Webhook processed successfully" });
+  } catch (error) {
+    console.error("Error processing Xumm webhook:", error);
+    res.status(500).json({ status: "error", message: "Internal Server Error" });
   }
-
-  res.status(200).json([
-    {
-      status: "ok",
-      message: "Webhook received",
-    },
-  ]);
 });
 
 app.get("/api/file/:hash", authenticateJWT, async (req: any, res: any) => {
