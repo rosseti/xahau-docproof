@@ -28,34 +28,6 @@ export class DocumentController {
     }
   }
 
-  static async markDocumentAsSigned(
-    req: AuthRequest,
-    res: Response
-  ): Promise<any> {
-    const wallet = req.user!.sub;
-    const { documentId, signerId } = req.params;
-    const { txid } = req.body;
-
-    try {
-      await DocumentService.markDocumentAsSigned(
-        documentId,
-        signerId,
-        wallet,
-        txid
-      );
-
-      return res.status(200).json({
-        status: "ok",
-      });
-    } catch (error: any) {
-      const statusCode =
-        error instanceof HttpException ? error.statusCode : 500;
-      return res.status(statusCode).json({
-        message: `Error: ${error.message}`,
-      });
-    }
-  }
-
   static async getDocumentById(req: AuthRequest, res: Response): Promise<any> {
     const { documentId } = req.params;
     try {

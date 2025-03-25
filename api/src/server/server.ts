@@ -30,7 +30,7 @@ const pdf = require("html-pdf");
 
 import { PDFDocument, rgb } from "pdf-lib";
 import { readFile } from "fs/promises";
-
+import { Xumm } from "xumm";
 
 app.use("/api", router);
 
@@ -46,10 +46,15 @@ function generatePdfAsync(html: string, options: any): Promise<Buffer> {
   });
 }
 
-async function mergeProofAndOriginal(proofBuffer: Buffer, originalPath: string): Promise<Buffer> {
+async function mergeProofAndOriginal(
+  proofBuffer: Buffer,
+  originalPath: string
+): Promise<Buffer> {
   try {
     if (!proofBuffer || !originalPath) {
-      throw new Error("Invalid input: proofBuffer and originalPath are required.");
+      throw new Error(
+        "Invalid input: proofBuffer and originalPath are required."
+      );
     }
 
     const proofPdf = await PDFDocument.load(proofBuffer);
@@ -57,11 +62,17 @@ async function mergeProofAndOriginal(proofBuffer: Buffer, originalPath: string):
     const originalPdf = await PDFDocument.load(originalPdfBytes);
 
     const mergedPdf = await PDFDocument.create();
-    const proofPages = await mergedPdf.copyPages(proofPdf, proofPdf.getPageIndices());
-    const originalPages = await mergedPdf.copyPages(originalPdf, originalPdf.getPageIndices());
+    const proofPages = await mergedPdf.copyPages(
+      proofPdf,
+      proofPdf.getPageIndices()
+    );
+    const originalPages = await mergedPdf.copyPages(
+      originalPdf,
+      originalPdf.getPageIndices()
+    );
 
-    originalPages.forEach(page => mergedPdf.addPage(page));
-    proofPages.forEach(page => mergedPdf.addPage(page));
+    originalPages.forEach((page) => mergedPdf.addPage(page));
+    proofPages.forEach((page) => mergedPdf.addPage(page));
 
     return Buffer.from(await mergedPdf.save());
   } catch (error) {
@@ -70,7 +81,10 @@ async function mergeProofAndOriginal(proofBuffer: Buffer, originalPath: string):
   }
 }
 
-async function addWatermark(pdfBuffer: Buffer, watermarkPath: string): Promise<Buffer> {
+async function addWatermark(
+  pdfBuffer: Buffer,
+  watermarkPath: string
+): Promise<Buffer> {
   const pdfDoc = await PDFDocument.load(pdfBuffer);
   const watermarkImageBytes = await readFile(watermarkPath);
   const watermarkImage = await pdfDoc.embedPng(watermarkImageBytes);
@@ -78,7 +92,7 @@ async function addWatermark(pdfBuffer: Buffer, watermarkPath: string): Promise<B
   const { width, height } = watermarkImage;
   const scale = 0.5;
 
-  pdfDoc.getPages().forEach(page => {
+  pdfDoc.getPages().forEach((page) => {
     const { width: pageWidth, height: pageHeight } = page.getSize();
     page.drawImage(watermarkImage, {
       x: pageWidth / 2 - (width * scale) / 2,
@@ -154,12 +168,18 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
 
     let pdfBuffer = await generatePdfAsync(htmlContent, options);
 
-    const filePath = path.resolve(process.env.STORAGE_PATH || "/storage", `${document.hash}.pdf`);
+    const filePath = path.resolve(
+      process.env.STORAGE_PATH || "/storage",
+      `${document.hash}.pdf`
+    );
     if (fs.existsSync(filePath)) {
       pdfBuffer = await mergeProofAndOriginal(pdfBuffer, filePath);
     }
 
-    const watermarkPath = path.join(__dirname, "/../../assets/app-logo-horizontal-dark.png");
+    const watermarkPath = path.join(
+      __dirname,
+      "/../../assets/app-logo-horizontal-dark.png"
+    );
     console.log(watermarkPath);
     if (fs.existsSync(watermarkPath)) {
       pdfBuffer = await addWatermark(pdfBuffer, watermarkPath);
@@ -174,6 +194,37 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
   } catch (error: any) {
     res.status(500).send("Error generating PDF: " + error.message);
   }
+});
+
+app.post("/api/webhook/xumm", async (req: any, res: any) => {
+  const xummService = new Xumm(
+    process.env.NEXT_PUBLIC_XAMAN_API_KEY || "",
+    process.env.XAMAN_SECRET_KEY || ""
+  );
+  const payload = await xummService.payload?.get(req.body.meta.payload_uuidv4);
+  if (!payload?.meta.exists) return;
+  const docId: string | null | undefined = payload.custom_meta.identifier;
+  const signerId: string | null = payload.custom_meta.blob?.signerId as
+    | string
+    | null;
+  const signerWallet: string | null = payload.response.signer;
+  const txid: string | null = payload.response.txid;
+
+  if (payload.meta.signed && docId && signerId && signerWallet && txid) {
+    await DocumentService.markDocumentAsSigned(
+      docId,
+      signerId,
+      signerWallet,
+      txid
+    );
+  }
+
+  res.status(200).json([
+    {
+      status: "ok",
+      message: "Webhook received",
+    },
+  ]);
 });
 
 app.get("/api/file/:hash", authenticateJWT, async (req: any, res: any) => {

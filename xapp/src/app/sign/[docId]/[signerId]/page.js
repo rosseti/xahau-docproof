@@ -52,21 +52,37 @@ export default function PageSign() {
             },
           },
         ],
+        // custom_meta: {
+        //   docId,
+        //   docHash: document.hash,
+        //   signerId
+        // },
       };
 
-      console.log(txjson);
-
       await xumm.payload
-        .createAndSubscribe(txjson, (eventMessage) => {
-          if ("pre_signed" in eventMessage.data) {
-            toast.info("Pre-signed");
-          }
+        .createAndSubscribe(
+          {
+            custom_meta: {
+              identifier: docId,
+              blob: {
+                docHash: document.hash,
+                signerId: signerId,
+              },
+            },
+            txjson
+          },
+          (eventMessage) => {
 
-          if ("signed" in eventMessage.data) {
-            toast.info("Signed");
-            return eventMessage;
+            if ("pre_signed" in eventMessage.data) {
+              toast.info("Pre-signed");
+            }
+
+            if ("signed" in eventMessage.data) {
+              toast.info("Signed");
+              return eventMessage;
+            }
           }
-        })
+        )
         .then(({ created, resolved }) => {
           console.log("Payload URL:", created.next.always);
           console.log("Payload QR:", created.refs.qr_png);
@@ -80,13 +96,8 @@ export default function PageSign() {
           console.log(response.txid);
 
           if (response.dispatched_result === "tesSUCCESS") {
-            apiService
-              .markDocumentAsSigned(docId, signerId, response.txid)
-              .then((response) => {
-                console.log(response);
-                setAlreadySigned(true);
-                toast.success("Document signed successfully!");
-              });
+            setAlreadySigned(true);
+            toast.success("Document signed successfully!");
           } else {
             toast.error(
               `Error signing document: ${response.dispatched_result}`
@@ -106,13 +117,9 @@ export default function PageSign() {
     }
   };
 
-  useEffect(() => {
-    if (!xumm) return;
-    setApiService(ApiService(xumm));
-  }, [xumm]);
-
-  useEffect(() => {
+  const fetchDocument = () => {
     if (!apiService) return;
+    console.log("Fetching document...");
     apiService
       .getDocumentByIdAndSignerId(docId, signerId)
       .then(({ document }) => {
@@ -123,6 +130,15 @@ export default function PageSign() {
           }
         });
       });
+  }
+
+  useEffect(() => {
+    if (!xumm) return;
+    setApiService(ApiService(xumm));
+  }, [xumm]);
+
+  useEffect(() => {
+    fetchDocument();
   }, [apiService]);
 
   if (isLoading || !xumm) return <PageLoader />;

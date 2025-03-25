@@ -31,6 +31,5 @@ docRoutes.get("/list", authenticateJWT, DocumentController.getDocuments);
 docRoutes.put("/:documentId/save-notify-signers", authenticateJWT, DocumentController.saveAndNotifySigners);
 docRoutes.post("/create", [authenticateJWT, upload.single("file")], DocumentController.createDocument);
 
-docRoutes.put("/:documentId/:signerId/sign", authenticateJWT, DocumentController.markDocumentAsSigned);
 docRoutes.get("/:documentId/:signerId", DocumentController.getDocumentByIdAndSignerId);
 docRoutes.get("/:documentId", authenticateJWT, DocumentController.getDocumentById);

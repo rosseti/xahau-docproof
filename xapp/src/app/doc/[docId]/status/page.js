@@ -35,6 +35,24 @@ export default function PageStatus() {
   const { account, isLoading } = useContext(AppContext);
   const router = useRouter();
 
+  const fetchDocument = () => {
+    if (!apiService) return;
+    console.log("Fetching document...");
+    apiService.getDocument(docId).then(({ document }) => {
+      const totalSigned = document.signers.filter((s) => s.signed).length;
+      setDocument(document);
+      setTotalSigned(totalSigned);
+      setTotalSigners(document.signers.length);
+      setPageCount(document.pageCount);
+
+      if (totalSigned !== document.signers.length) {
+        setTimeout(() => {
+          fetchDocument();
+        }, 5000);
+      }
+    });
+  }
+
   useEffect(() => {
     if (!isLoading && !account) {
       router.push("/login");
@@ -47,13 +65,7 @@ export default function PageStatus() {
   }, [xumm]);
 
   useEffect(() => {
-    if (!apiService) return;
-    apiService.getDocument(docId).then(({ document }) => {
-      setDocument(document);
-      setTotalSigned(document.signers.filter((s) => s.signed).length);
-      setTotalSigners(document.signers.length);
-      setPageCount(document.pageCount);
-    });
+    fetchDocument();
   }, [apiService]);
 
   if (isLoading) return <PageLoader />;

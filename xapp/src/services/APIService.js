@@ -76,36 +76,11 @@ const ApiService = (xumm) => {
     return response;
   }
 
-  async function markDocumentAsSigned(documentId, signerId, txid) {
-    try {
-      const headers = {
-        Authorization: `Bearer ${await xumm.environment.bearer}`,
-      };
-
-      const data = {
-        txid,
-      };
-
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL}/doc/${documentId}/${signerId}/sign`,
-        data,
-        {
-          headers,
-        }
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error("Error updating status: ", error.response.data);
-    }
-  }
-
   return {
     getDocuments,
     getDocument,
     addAuthorizedSigners,
-    getDocumentByIdAndSignerId,
-    markDocumentAsSigned,
+    getDocumentByIdAndSignerId
   };
 };
 
