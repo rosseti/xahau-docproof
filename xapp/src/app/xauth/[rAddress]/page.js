@@ -15,13 +15,13 @@ import { Client } from "xrpl";
 const PDFCertificateExtractor = () => {
   const { rAddress } = useParams();
   const searchParams = useSearchParams();
-  const destinationTag = searchParams.get("destinationTag");
+  const id = searchParams.get("id");
   const [file, setFile] = useState(null);
   const [certificates, setCertificates] = useState([]);
 
   const [domain, setDomain] = useState(null);
   const [toml, setToml] = useState(null);
-  const [domainPubCert, setDomainPubCert] = useState([]);
+  const [addressPubKey, setAddressPubKey] = useState("");
 
   const handleFileChange = async (acceptedFile) => {
     const selectedFile = acceptedFile;
@@ -138,41 +138,19 @@ const PDFCertificateExtractor = () => {
     return validation;
   };
 
-  const fetchXahauDocProofCert = async () => {
-    try {
-      const keyName = `${rAddress}${
-        destinationTag ? `-tag-${destinationTag}` : ""
-      }.pem`;
-
-      const response = await fetch(
-        `https://${domain}/.well-known/xahaudocproof/${keyName}`
-      );
-      if (!response.ok) throw new Error("Public key not found");
-      const certificate = await response.text();
-
-      setDomainPubCert(certificate);
-
-      toast.success("Public key fetched successfully");
-
-      return certificate;
-    } catch (err) {
-      throw new Error(`Error fetching public key: ${err.message}`);
-    }
-  };
-
-  const validateCertificate = (extractedCert, domainCertPem) => {
+  const validateCertificate = (extractedCert, pubKeyPem) => {
     try {
       const extractedCertObj = forge.pki.certificateFromPem(
         extractedCert.pemCertificate
       );
-      const domainCertObj = forge.pki.certificateFromPem(domainCertPem);
-
-      const extractedPubKey = forge.pki.publicKeyToPem(
+      const extractedPubKeyPem = forge.pki.publicKeyToPem(
         extractedCertObj.publicKey
       );
-      const domainPubKey = forge.pki.publicKeyToPem(domainCertObj.publicKey);
 
-      const isValid = extractedPubKey === domainPubKey;
+      const pubKeyObj = forge.pki.publicKeyFromPem(pubKeyPem);
+      const inputPubKeyPem = forge.pki.publicKeyToPem(pubKeyObj);
+
+      const isValid = extractedPubKeyPem === inputPubKeyPem;
 
       const extractedFingerprint = forge.md.sha256
         .create()
@@ -183,27 +161,17 @@ const PDFCertificateExtractor = () => {
         )
         .digest()
         .toHex();
-      const domainFingerprint = forge.md.sha256
-        .create()
-        .update(
-          forge.asn1
-            .toDer(forge.pki.certificateToAsn1(domainCertObj))
-            .getBytes()
-        )
-        .digest()
-        .toHex();
 
       return {
         isValid,
-        fingerprintMatches: extractedFingerprint === domainFingerprint,
+        extractedFingerprint,
         message: isValid
-          ? "Public key matches the domain"
-          : "Public key does not match the domain",
+          ? "Public key matches the declared pubkey"
+          : "Public key does not match the declared pubkey",
       };
     } catch (err) {
       return {
         isValid: false,
-        fingerprintMatches: false,
         message: `Error validating certificate: ${err.message}`,
       };
     }
@@ -265,38 +233,41 @@ const PDFCertificateExtractor = () => {
   useEffect(() => {
     let isMounted = true;
 
-    const getDomainPubCert = async () => {
+    const getAddressPubKey = async () => {
       try {
-        const certificate = await fetchXahauDocProofCert();
-        if (isMounted) {
-          setDomainPubCert(certificate);
+        for (const docproofData of toml.DOCPROOF) {
+          if (
+            (docproofData.address === rAddress &&
+              id !== null &&
+              docproofData.id === id) ||
+            (docproofData.address === rAddress && id === null)
+          ) {
+            const pubkey = docproofData.pubkey.trim();
+            setAddressPubKey(pubkey);
+            break;
+          }
         }
       } catch (error) {
         if (isMounted) {
           toast.error(error.message);
-          console.error(
-            "Error fetching xahaudocproof-cert.pem:",
-            error.message
-          );
+          console.error("Error fetching pubKey:", error.message);
         }
       }
     };
 
-    if (domain !== null) getDomainPubCert();
+    if (domain !== null) getAddressPubKey();
 
     return () => {
       isMounted = false;
     };
   }, [toml]);
 
-  if (!domain || !toml || !domainPubCert) return <PageLoader />;
+  if (!domain || !toml || !addressPubKey.length) return <PageLoader />;
 
   return (
     <div className="container mx-auto pt-5 px-4">
-      <h1 className="text-4xl font-bold pb-4">NextAudit</h1>
-      {destinationTag && (
-        <p className="mb-4">destinationTag: {destinationTag}</p>
-      )}
+      <h1 className="text-4xl font-bold pb-4">XAuth</h1>
+      {id && <p className="mb-4">ID: {id}</p>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Dropzone */}
         <div className="p-4 border rounded-lg bg-gray-50 shadow-md">
@@ -313,7 +284,7 @@ const PDFCertificateExtractor = () => {
         <div className="p-4 border rounded-lg bg-gray-50 shadow-md">
           {certificates.length > 0
             ? certificates.map((cert, index) => {
-                const validation = validateCertificate(cert, domainPubCert);
+                const validation = validateCertificate(cert, addressPubKey);
                 const isValid = validation.isValid;
 
                 return (
