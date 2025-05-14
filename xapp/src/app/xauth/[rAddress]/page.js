@@ -147,8 +147,6 @@ const PDFCertificateExtractor = () => {
         extractedCertObj.publicKey
       );
 
-      // Converte a chave pública em PEM para objeto Forge
-      console.log(pubKeyPem);
       const pubKeyObj = forge.pki.publicKeyFromPem(pubKeyPem);
       const inputPubKeyPem = forge.pki.publicKeyToPem(pubKeyObj);
 
@@ -244,7 +242,7 @@ const PDFCertificateExtractor = () => {
               docproofData.id === id) ||
             (docproofData.address === rAddress && id === null)
           ) {
-            const pubkey = docproofData.pubkey;
+            const pubkey = docproofData.pubkey.trim();
             setAddressPubKey(pubkey);
             break;
           }
