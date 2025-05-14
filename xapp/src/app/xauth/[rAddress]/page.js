@@ -21,7 +21,7 @@ const PDFCertificateExtractor = () => {
 
   const [domain, setDomain] = useState(null);
   const [toml, setToml] = useState(null);
-  const [addressPubKey, setAddressPubKey] = useState([]);
+  const [addressPubKey, setAddressPubKey] = useState("");
 
   const handleFileChange = async (acceptedFile) => {
     const selectedFile = acceptedFile;
@@ -58,7 +58,6 @@ const PDFCertificateExtractor = () => {
   };
 
   const fetchDomainFromLedger = async (accountAddress) => {
-    return "localhost:3000";
     const client = new Client("wss://xahau.network");
     client.apiVersion = 1;
     try {
@@ -89,7 +88,7 @@ const PDFCertificateExtractor = () => {
   const fetchXrplToml = async () => {
     try {
       console.log(domain);
-      const response = await fetch(`http://${domain}/.well-known/xahau.toml`);
+      const response = await fetch(`https://${domain}/.well-known/xahau.toml`);
       if (!response.ok) throw new Error("xahau.toml not found");
       const tomlText = await response.text();
       const parsedToml = parse(tomlText);
@@ -167,7 +166,6 @@ const PDFCertificateExtractor = () => {
 
       return {
         isValid,
-        fingerprintMatches: null,
         extractedFingerprint,
         message: isValid
           ? "Public key matches the declared pubkey"
@@ -176,7 +174,6 @@ const PDFCertificateExtractor = () => {
     } catch (err) {
       return {
         isValid: false,
-        fingerprintMatches: false,
         message: `Error validating certificate: ${err.message}`,
       };
     }
@@ -240,8 +237,7 @@ const PDFCertificateExtractor = () => {
 
     const getAddressPubKey = async () => {
       try {
-        for (const docproof in toml.DOCPROOF) {
-          const docproofData = toml.DOCPROOF[docproof];
+        for (const docproofData of toml.DOCPROOF) {
           if (
             (docproofData.address === rAddress &&
               id !== null &&
@@ -268,7 +264,7 @@ const PDFCertificateExtractor = () => {
     };
   }, [toml]);
 
-  if (!domain || !toml || !addressPubKey) return <PageLoader />;
+  if (!domain || !toml || !addressPubKey.length) return <PageLoader />;
 
   return (
     <div className="container mx-auto pt-5 px-4">
