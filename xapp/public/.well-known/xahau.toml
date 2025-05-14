@@ -23,4 +23,20 @@ address = "rBzkkQP7P2Dkq9faS51Dy2SfvCZDW3yjtu"
 network = "main"
 desc = "Xahau Docproof - Donations"
 
+[[DOCPROOF]]
+address = "rNqe9wrMJM3D6hwcTtNmYTtfcjbHsHRDSg"
+id = "429f076e-0b1c-412c-b1b0-c678cc6cb173"
+desc = "Xahau Docproof"
+pubkey = """
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAr2c2QkIwFG3ksLNziUOd
+t3x7/BYMHpUwfO2TfVIQgvsk9Knwj7e+t/tBiMxXkFdc3gkaYRLT9bRP+YrUa5LU
+8/38K5koo9Ek4F3juG0eMVWvdXthmRQk9JDFqGDE7ayrhJLhQjacF9UVjTWrZeqa
+tOO4XOpSpUbUwa2R5EEu+oZB1sxfbZDM01NyzKMdnPCRejDgr/vsAaSRE5eocj0N
+OcwNzeHoozZaQk/fepDuYraFCrM70d2thU3URl3ZTJeNUEOp0Mq9wIHLDxvmqDKq
+ISpV2FDC60b1HV+2v9g3bEQt9oGfYMHBfCpRNMFNVCSTJz+xGW3PlPHayRRGTgps
+6wIDAQAB
+-----END PUBLIC KEY-----
+"""
+
 # End of file
