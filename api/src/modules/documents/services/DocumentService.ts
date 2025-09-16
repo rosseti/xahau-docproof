@@ -10,12 +10,13 @@ import UserDocument, {
   Signer,
 } from "@/modules/documents/models/UserDocument";
 import crypto from "crypto";
-import fs from "fs";
+import { readFile } from "fs/promises";
 import mongoose from "mongoose";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
 import { NotificationService } from "./NotificationService";
 import { InternalServerErrorException } from "@/exceptions/InternalServerErrorException";
+import fs from "fs";
 
 export class DocumentService {
   static async getDocuments(
@@ -29,10 +30,10 @@ export class DocumentService {
 
     const skip = (page - 1) * limit;
 
-    const documents = await UserDocument.find({ owner: wallet }) 
-      .sort({ createdAt: -1 }) 
-      .skip(skip) 
-      .limit(limit) 
+    const documents = await UserDocument.find({ owner: wallet })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
     const total = await UserDocument.countDocuments({ owner: wallet });
@@ -298,5 +299,30 @@ export class DocumentService {
 
     console.log(`PDF has ${pageCount} pages.`);
     return pageCount;
+  };
+
+  static addWatermark = async (
+    pdfBuffer: Buffer,
+    watermarkPath: string
+  ): Promise<Buffer> => {
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const watermarkImageBytes = await readFile(watermarkPath);
+    const watermarkImage = await pdfDoc.embedPng(watermarkImageBytes);
+
+    const { width, height } = watermarkImage;
+    const scale = 0.5;
+
+    pdfDoc.getPages().forEach((page) => {
+      const { width: pageWidth, height: pageHeight } = page.getSize();
+      page.drawImage(watermarkImage, {
+        x: pageWidth / 2 - (width * scale) / 2,
+        y: pageHeight / 2 - (height * scale) / 2,
+        width: width * scale,
+        height: height * scale,
+        opacity: 0.2,
+      });
+    });
+
+    return Buffer.from(await pdfDoc.save({ useObjectStreams: false }));
   };
 }

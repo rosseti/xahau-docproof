@@ -9,5 +9,6 @@ const router = Router();
 router.use("/auth", authRoutes);
 router.use("/doc", docRoutes);
 router.use("/did", didRoutes);
+router.use("/xdp-genesis", require("@/modules/xdpgenesis/routes/xdpgenesis.routes").authRoutes);
 
 export { router };
