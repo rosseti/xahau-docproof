@@ -15,10 +15,11 @@ const fileFilter = (req: any, file: any, cb: any) => {
     "application/octet-stream",
     "application/x-pkcs12",
   ];
+
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Apenas arquivos PDF são permitidos!"), false);
+    cb(new Error("Only file types are allowed"), false);
   }
 };
 
