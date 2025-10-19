@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { XDPGenesisController } from "../controllers/XDPGenesisController";
+import { OrigoController } from "../controllers/OrigoController";
 import { authenticateJWT } from "../../auth/middleware/authenticateJWT";
 
-export const authRoutes = Router();
+export const origoRoutes = Router();
 
 const signer = require("node-signpdf").default;
 
@@ -29,12 +29,17 @@ const upload = multer({
   fileFilter,
 });
 
-authRoutes.post(
+origoRoutes.post(
   "/sign",
   (authenticateJWT as any),
   upload.fields([
     { name: "pdf", maxCount: 1 },
     { name: "cert", maxCount: 1 },
   ]) as any,
-  (XDPGenesisController.sign as any)
+  (OrigoController.sign as any)
+);
+
+origoRoutes.post(
+  "/verify-signature",
+  (OrigoController.verifySignature as any)
 );

@@ -6,9 +6,28 @@ import { plainAddPlaceholder } from "node-signpdf";
 import path from "path";
 import { PDFDocument, rgb } from "pdf-lib";
 import QRCode from "qrcode";
+import signatureService, { VerifyPayload } from "../services/SignatureService";
 const signer = require("node-signpdf").default;
 
-export class XDPGenesisController {
+export class OrigoController {
+  static async verifySignature(req: AuthRequest, res: Response) {
+    try {
+      const { sha256, signature, rAddress, id } = req.body || {};
+
+      const result = await signatureService.verifyPayload({
+        sha256,
+        signature,
+        rAddress,
+        id
+      } as VerifyPayload);
+      
+      return res.status(result.status).json(result.body);
+    } catch (err: any) {
+      console.error("verify-signature route error:", err);
+      return res.status(500).json({ message: `Internal server error: ${err.message}` });
+    }
+  }
+
   static async sign(req: any, res: Response) {
     try {
       const pdfFile = req.files?.["pdf"]?.[0];
