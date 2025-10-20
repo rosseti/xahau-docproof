@@ -23,6 +23,7 @@ const Origo = () => {
     const [toml, setToml] = useState(null);
     const [verifying, setVerifying] = useState(false);
     const [verifyResult, setVerifyResult] = useState(null);
+    
 
     const handleFileChange = async (acceptedFile) => {
         const selectedFile = acceptedFile;
