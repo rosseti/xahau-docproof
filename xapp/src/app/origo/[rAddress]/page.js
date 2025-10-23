@@ -104,7 +104,10 @@ const Origo = () => {
             let sha256ByteRangeHex = null;
             if (sigInfo && sigInfo.byteRange) {
                 try {
-                    sha256ByteRangeHex = await computeSha256HexForByteRange(u8, sigInfo.byteRange);
+                    const digestBuf = await crypto.subtle.digest("SHA-256", arrayBuffer);
+                    const digestU8 = new Uint8Array(digestBuf);
+                    sha256ByteRangeHex = bufferToHex(digestU8);
+                    //sha256ByteRangeHex = await computeSha256HexForByteRange(u8, sigInfo.byteRange);
                     console.log("Computed sha256 over ByteRange:", sha256ByteRangeHex);
                 } catch (e) {
                     console.error("Error computing sha256 over ByteRange:", e);

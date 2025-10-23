@@ -4,24 +4,9 @@ import React, { useContext, useState } from "react";
 import Link from "next/link";
 import { AppContext } from "@/context/AppContext";
 
-/**
- * Origo landing + quick domain association UI (Next.js + Tailwind + DaisyUI)
- *
- * - Marketing content about features / How it works
- * - Xaman Wallet quick flow to set Domain on XRPL (AccountSet Domain)
- * - xahau.toml DOCPROOF example with copy button
- *
- * Notes about Xaman Wallet integration:
- * - This code attempts to use window.xaman (common pattern for wallet browser extensions).
- * - Wallet APIs vary. The code attempts a few guarded calls and falls back to showing
- *   the prepared XRPL transaction object for manual signing/submission.
- *
- * IMPORTANT: This component runs client-side only ("use client").
- */
-
 const XAHauTOML_EXAMPLE = `[[DOCPROOF]]
-address = "rNqe9wrMJM3D6hwcTtNmYTtfcjbHsHRDSg" # Raddress
-id = "429f076e-0b1c-412c-b1b0-c678cc6cb173" # Unique ID v4
+id = "429f076e-0b1c-412c-b1b0-c678cc6cb173" # UUIDv4 - https://www.uuidgenerator.net/version4
+address = "rNqe9wrMJM3D6hwcTtNmYTtfcjbHsHRDSg" # rAddress of the Xahau Account
 desc = "Xahau Docproof" # Account description
 pubkey = """
 -----BEGIN PUBLIC KEY-----
@@ -35,7 +20,7 @@ export default function Origo() {
   const [assocStatus, setAssocStatus] = useState(null);
   const [assocError, setAssocError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const { account, isLoading, xumm } = useContext(AppContext);
+  const { account, xumm } = useContext(AppContext);
 
   const copyToClipboard = async (text) => {
     try {
@@ -104,13 +89,14 @@ export default function Origo() {
 
       // 3) request with method name (EIP-1193 style for custom provider)
       console.log(typeof xumm.payload.create);
-      if (typeof xumm.payload === 'object' && typeof xumm.payload.create === 'function') {
+      //if (typeof xumm.payload === 'object' && typeof xumm.payload.create === 'function') {
         // try a common RPC style call used by some wallets; this is exploratory
         try {
           const res = await xumm.payload.create({ txjson: tx }).then(payload => {
             setAssocStatus(`Submitted: ${JSON.stringify(payload, null, 2)}`);
             // document.getElementById('payload').innerHTML = JSON.stringify(payload, null, 2)
             xumm.xapp.openSignRequest(payload)
+          
           });
           setAssocStatus(`Submitted: ${JSON.stringify(res)}`);
           setSubmitting(false);
@@ -119,7 +105,7 @@ export default function Origo() {
           console.error("xumm.payload.create failed:", e);
           // ignore and fallback
         }
-      }
+      //}
 
       // If we reached here, we couldn't call a signer method. Provide tx for manual flow.
       setAssocError(
@@ -157,7 +143,6 @@ export default function Origo() {
         <header className="text-center max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-3 mb-4">
             <span className="code-badge">Beta</span>
-            <span className="text-xs text-slate-400">Launch special</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl hero-title leading-tight">
@@ -191,9 +176,9 @@ export default function Origo() {
           </div>
 
           <div className="glass-card p-6 rounded-lg shadow">
-            <h3 className="font-semibold text-slate-100">DER & PKCS#7 support</h3>
+            <h3 className="font-semibold text-slate-100">Actionable diagnostics & auditability</h3>
             <p className="text-slate-300 mt-2 text-sm">
-              Accepts DER-encoded certificate blobs and PKCS#7 containers (if node-forge is enabled), with detailed diagnostics when extraction is required.
+              Get detailed, actionable verification reports — parse errors, certificate fingerprints and extraction logs — so you can fix issues and keep auditable records.
             </p>
           </div>
         </section>
@@ -212,7 +197,7 @@ export default function Origo() {
             </ol>
 
             <p className="mt-4 text-slate-400 text-sm">
-              Note: Current flow compares public key material. Full cryptographic verification of PDF byte-range signed attributes (CMS SignedData) is supported when PKCS#7 extraction is available and the PDF byte-range digest is provided.
+              Note: Current flow compares public key material. Full cryptographic verification of PDF byte-range signed attributes is supported when PKCS#7 extraction is available and the PDF byte-range digest is provided.
             </p>
           </div>
 

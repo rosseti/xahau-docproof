@@ -57,9 +57,12 @@
     "nodemailer": "^6.9.16",
     "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4",
+    "ripple-binary-codec": "^2.5.0",
+    "ripple-keypairs": "^2.0.0",
     "supertest": "^7.0.0",
     "tiny-secp256k1": "^2.2.3",
     "xrpl": "^4.4.2",
+    "xrpl-keypairs": "^1.0.3",
     "xumm": "^1.7.7"
   }
 }
