@@ -1,3 +1,4 @@
+    
 "use client";
 
 import PageLoader from "@/components/PageLoader";
@@ -53,6 +54,26 @@ const Origo = () => {
         return c.join("");
     };
 
+// Calcula o SHA-256 sobrescrevendo o /ByteRange com zeros (simula estado pré-assinatura)
+    async function computeSha256WithZeroedByteRange(u8, pdfLatin1, byteRange) {
+        // Localiza o /ByteRange
+        const brRegex = /\/ByteRange\s*\[(\s*\d+\s+\d+\s+\d+\s+\d+\s*)\]/m;
+        const brMatch = brRegex.exec(pdfLatin1);
+        if (!brMatch) return null;
+        const brStr = brMatch[0];
+        const brStart = pdfLatin1.indexOf(brStr);
+        const brEnd = brStart + brStr.length;
+        // Monta string de zeros com mesmo espaçamento
+        const zeroed = brStr.replace(/\d+/g, (m) => '0'.repeat(m.length));
+        // Constrói string final
+        const patchedStr = pdfLatin1.slice(0, brStart) + zeroed + pdfLatin1.slice(brEnd);
+        // Latin1 para Uint8Array
+        const patchedU8 = new Uint8Array(patchedStr.length);
+        for (let i = 0; i < patchedStr.length; i++) patchedU8[i] = patchedStr.charCodeAt(i);
+        // Usa o byteRange real do PDF assinado (os offsets não mudam)
+        return computeSha256HexForByteRange(patchedU8, byteRange);
+    }
+
     const findByteRangeAndContents = (pdfStr) => {
         const brRegex = /\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/m;
         const brMatch = brRegex.exec(pdfStr);
@@ -61,31 +82,32 @@ const Origo = () => {
         const byteRange = brMatch.slice(1, 5).map((v) => Number.parseInt(v, 10));
 
         const contentsRegex = /\/Contents\s*<([\s0-9A-Fa-f\r\n\t]+)>/m;
-        const contMatch = contentsRegex.exec(pdfStr);
-
+        let contMatch = contentsRegex.exec(pdfStr);
+        
         if (!contMatch) {
             const contParenRegex = /\/Contents\s*\(\s*([\s\S]*?)\s*\)/m;
             const contParenMatch = contParenRegex.exec(pdfStr);
             if (!contParenMatch) return { byteRange, contentsHex: null };
-            return { byteRange, contentsHex: null };
+            contMatch = contParenMatch;
         }
 
-        const rawHex = contMatch[1].replaceAll(/[\s\r\n\t]+/g, "");
+        const rawHex = contMatch[1].replace(/[\s\r\n\t]+/g, "");
         return { byteRange, contentsHex: rawHex };
     };
 
-    const computeSha256HexForByteRange = async (u8, byteRange) => {
-        // byteRange = [off1, len1, off2, len2]
-        const [o1, l1, o2, l2] = byteRange;
-        const part1 = u8.subarray(o1, o1 + l1);
-        const part2 = u8.subarray(o2, o2 + l2);
-        const concat = new Uint8Array(part1.length + part2.length);
-        concat.set(part1, 0);
-        concat.set(part2, part1.length);
 
-        const digest = await crypto.subtle.digest("SHA-256", concat);
-        return bufferToHex(digest);
-    };
+    async function computeSha256HexForByteRange(u8, byteRange) {
+        const [start1, length1, start2, length2] = byteRange;
+        const part1 = u8.slice(start1, start1 + length1);
+        const part2 = u8.slice(start2, start2 + length2);
+
+        const joined = new Uint8Array(part1.length + part2.length);
+        joined.set(part1, 0);
+        joined.set(part2, part1.length);
+
+        const digestBuf = await crypto.subtle.digest("SHA-256", joined);
+        return bufferToHex(new Uint8Array(digestBuf));
+    }
 
     const extractSignature = async (pdfFile) => {
         try {
@@ -102,13 +124,13 @@ const Origo = () => {
             }
 
             let sha256ByteRangeHex = null;
+            let sha256ZeroedByteRangeHex = null;
             if (sigInfo && sigInfo.byteRange) {
                 try {
-                    const digestBuf = await crypto.subtle.digest("SHA-256", arrayBuffer);
-                    const digestU8 = new Uint8Array(digestBuf);
-                    sha256ByteRangeHex = bufferToHex(digestU8);
-                    //sha256ByteRangeHex = await computeSha256HexForByteRange(u8, sigInfo.byteRange);
+                    sha256ByteRangeHex = await computeSha256HexForByteRange(u8, sigInfo.byteRange);
+                    sha256ZeroedByteRangeHex = await computeSha256WithZeroedByteRange(u8, pdfLatin1, sigInfo.byteRange);
                     console.log("Computed sha256 over ByteRange:", sha256ByteRangeHex);
+                    console.log("Computed sha256 with zeroed ByteRange:", sha256ZeroedByteRangeHex);
                 } catch (e) {
                     console.error("Error computing sha256 over ByteRange:", e);
                 }
@@ -123,7 +145,7 @@ const Origo = () => {
             }
 
             const payload = {
-                sha256: sha256ByteRangeHex,
+                sha256: sha256ZeroedByteRangeHex,
                 signature: signatureHex || null,
                 rAddress,
             };
@@ -246,7 +268,7 @@ const Origo = () => {
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900">
-                            Origo
+                            Origo Verifier
                         </h1>
                         <p className="mt-1 text-sm text-slate-600">
                             Verify signatures of documents against Xahau trusted domain.

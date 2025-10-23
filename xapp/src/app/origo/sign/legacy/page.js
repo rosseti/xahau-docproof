@@ -1,6 +1,7 @@
 "use client";
 
 import Dropzone from "@/components/UI/Dropzone";
+import { AppContext } from "@/context/AppContext";
 import * as forge from "node-forge";
 import {
     PDFDocument,
@@ -10,9 +11,7 @@ import {
     rgb
 } from "pdf-lib";
 import QRCode from "qrcode";
-import { useCallback, useState } from "react";
-
-/* ---------- Helpers (mesmos de antes) ---------- */
+import { useCallback, useContext, useState } from "react";
 
 const bufferToHex = (buffer) =>
     Array.prototype.map
@@ -292,15 +291,13 @@ async function signPdfWithByteRange(pdfU8, contentsHexStart, contentsHexEnd, pfx
     return signatureU8;
 }
 
-/* ---------- Componente React / UI (sempre faz AcroForm + append textual block) ---------- */
-
 export default function Page() {
     const [pdfFile, setPdfFile] = useState(null);
     const [pfxFile, setPfxFile] = useState(null);
     const [passphrase, setPassphrase] = useState("");
-    const [wallet, setWallet] = useState("");
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState(null);
+    const { account } = useContext(AppContext);
 
     const handleDropzoneFile = useCallback(async (file) => {
         if (!file) {
@@ -308,7 +305,7 @@ export default function Page() {
             return;
         }
         if (file.type !== "application/pdf") {
-            alert("Por favor selecione um arquivo PDF.");
+            alert("Please select a valid PDF file.");
             return;
         }
         setPdfFile(file);
@@ -323,29 +320,25 @@ export default function Page() {
     const handleSignAndGenerate = async () => {
         setMessage(null);
         if (!pdfFile) {
-            alert("Selecione um PDF pelo dropzone.");
+            alert("Please select a PDF file from the dropzone.");
             return;
         }
         if (!pfxFile) {
-            alert("Selecione o arquivo PFX (.pfx / .p12).");
+            alert("Please select the PFX file (.pfx / .p12).");
             return;
         }
 
         setBusy(true);
 
         try {
-            // 1) Carrega PDF original e adiciona página do QR
             const pdfArrayBuffer = await pdfFile.arrayBuffer();
             const pdfBytes = new Uint8Array(pdfArrayBuffer);
             const pdfDoc = await PDFDocument.load(pdfBytes);
 
-            // Gera QR
-            const origin =
-                (typeof window !== "undefined" && window.location && window.location.origin) || "https://xahau.network";
-            const fullValidationUrl = wallet ? `${origin}/origo/${encodeURIComponent(wallet)}` : origin;
+            const origin = process.env.NEXT_PUBLIC_APP_URL;
+            const fullValidationUrl = `${origin}/origo/${encodeURIComponent(account)}`;
             const qrDataUrl = await QRCode.toDataURL(fullValidationUrl, { margin: 1, scale: 6 });
 
-            // adiciona página QR
             const qrPage = pdfDoc.addPage([595, 842]);
             const pngImage = await pdfDoc.embedPng(qrDataUrl);
             const qrWidth = 160;
@@ -356,17 +349,12 @@ export default function Page() {
             qrPage.drawText(`Validation URL: ${fullValidationUrl}`, { x: 50, y: 572, size: 10 });
             const now = new Date();
             qrPage.drawText(`Signed at: ${now.toISOString()}`, { x: 50, y: 540, size: 10 });
-            if (wallet) qrPage.drawText(`Xahau wallet: ${wallet}`, { x: 50, y: 520, size: 10 });
+            if (account) qrPage.drawText(`Xahau wallet: ${account}`, { x: 50, y: 520, size: 10 });
 
-            // 2) Insere campo de assinatura AcroForm (apenas para visualização)
-            // insertAcroFormSignaturePlaceholder(pdfDoc, "Document signed via Docproof");
-
-            // 3) salva PDF (ainda sem /ByteRange e /Contents reais)
             const pdfWithFieldBytes = await pdfDoc.save({ useObjectStreams: false });
             const pdfWithFieldU8 = new Uint8Array(pdfWithFieldBytes);
 
-            // 4) ANEXA um bloco textual seguro para o placeholder do ByteRange/Contents
-            const placeholderSize = 8192; // aumente se necessário
+            const placeholderSize = 8192;
             const appended = appendSignaturePlaceholder(pdfWithFieldU8, placeholderSize, "Document signed via Docproof");
             const pdfForSign = appended.newPdfU8;
             const byteRangePos = appended.byteRangePos;
@@ -374,16 +362,13 @@ export default function Page() {
             const contentsHexEnd = appended.contentsHexEnd;
             const numWidth = appended.numWidth;
 
-            // 5) cria assinatura PKCS#7 sobre o PDF sem os bytes do /Contents
             const pfxArrayBuffer = await pfxFile.arrayBuffer();
             const signatureU8 = await signPdfWithByteRange(pdfForSign, contentsHexStart, contentsHexEnd, pfxArrayBuffer, passphrase);
 
             const signatureHex = bufferToHex(signatureU8);
 
-            // 6) injeta ByteRange e assinatura no bloco textual (seguro)
             const finalPdfU8 = injectByteRangeAndSignature(pdfForSign, byteRangePos, contentsHexStart, contentsHexEnd, numWidth, signatureHex);
 
-            // 7) download
             const blob = new Blob([finalPdfU8], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -401,12 +386,12 @@ export default function Page() {
 
             setMessage({
                 status: "ok",
-                text: `PDF gerado com campo de assinatura (AcroForm) e assinatura embutida via bloco textual. SHA256: ${digestHex}`,
+                text: `PDF generated successfully: ${digestHex}`,
             });
         } catch (err) {
-            console.error("Erro ao assinar/gerar PDF:", err);
+            console.error("Error signing/generating PDF:", err);
             setMessage({ status: "error", text: err.message || String(err) });
-            alert("Erro: " + (err.message || String(err)));
+            alert("Error: " + (err.message || String(err)));
         } finally {
             setBusy(false);
         }
@@ -414,22 +399,22 @@ export default function Page() {
 
     return (
         <div className="max-w-4xl mx-auto p-6">
-            <h1 className="text-3xl font-bold mb-3">Origo &ndash; Sign PDF (client-side)</h1>
+            <h1 className="text-3xl font-bold mb-3">Origo &ndash; Sign PDF (Legacy)</h1>
             <p className="text-sm text-slate-600 mb-6">
-                Gera um PDF com uma página de validação (QR), insere um campo de assinatura (AcroForm) para que leitores mostrem o campo,
-                e embute a assinatura PKCS#7 em um bloco textual anexo (método robusto para injeção de /ByteRange e /Contents).
+                Generate a PDF with a validation page (QR), insert a signature field (AcroForm) for readers to show the field,
+                and embed the PKCS#7 signature in an appended textual block (robust method for /ByteRange and /Contents injection).
             </p>
 
             <div className="space-y-6">
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="font-semibold mb-2">1) Selecione o documento (PDF)</h2>
-                    <p className="text-xs text-slate-500 mb-3">Arraste e solte ou selecione um PDF. Não armazenamos nada.</p>
+                    <h2 className="font-semibold mb-2">1) Choose the document (PDF)</h2>
+                    <p className="text-xs text-slate-500 mb-3">Drag and drop or select a PDF. We don’t store anything.</p>
                     <Dropzone onFileChange={handleDropzoneFile} />
-                    {pdfFile && <div className="mt-3 text-sm">Arquivo selecionado: <strong>{pdfFile.name}</strong></div>}
+                    {pdfFile && <div className="mt-3 text-sm">Selected file: <strong>{pdfFile.name}</strong></div>}
                 </div>
 
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="font-semibold mb-2">2) Selecione o PFX / Passphrase</h2>
+                    <h2 className="font-semibold mb-2">2) Choose the PFX / Passphrase</h2>
                     <div className="flex flex-col sm:flex-row gap-3 items-start">
                         <input
                             type="file"
@@ -439,7 +424,7 @@ export default function Page() {
                         />
                         <input
                             type="password"
-                            placeholder="Passphrase do PFX (se houver)"
+                            placeholder="Passphrase for PFX (if any)"
                             value={passphrase}
                             onChange={(e) => setPassphrase(e.target.value)}
                             className="input input-bordered input-sm w-full max-w-xs"
@@ -449,11 +434,12 @@ export default function Page() {
                 </div>
 
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="font-semibold mb-2">3) Endereço Xahau para validação (opcional)</h2>
+                    <h2 className="font-semibold mb-2">3) Xahau Address for Validation</h2>
                     <input
-                        placeholder="Insira a carteira Xahau (wallet) que será incluída no PDF"
-                        value={wallet}
-                        onChange={(e) => setWallet(e.target.value)}
+                        placeholder="Enter the Xahau wallet address to be included in the PDF"
+                        value={account}
+                        disabled
+                        readOnly
                         className="input input-bordered w-full"
                     />
                 </div>
@@ -464,7 +450,7 @@ export default function Page() {
                         onClick={handleSignAndGenerate}
                         disabled={busy}
                     >
-                        {busy ? "Gerando..." : "Assinar e Gerar PDF (AcroForm + assinatura embutida)"}
+                        {busy ? "Generating..." : "Generate PDF (embedded signature)"}
                     </button>
 
                     <button
@@ -473,11 +459,10 @@ export default function Page() {
                             setPdfFile(null);
                             setPfxFile(null);
                             setPassphrase("");
-                            setWallet("");
                             setMessage(null);
                         }}
                     >
-                        Limpar
+                        Clear
                     </button>
                 </div>
 

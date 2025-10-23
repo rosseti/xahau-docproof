@@ -62,49 +62,93 @@ function appendSignaturePlaceholder(pdfU8, placeholderSizeBytes = 8192, reason =
 }
 
 function injectByteRangeAndSignature(pdfU8, byteRangePos, contentsHexStart, contentsHexEnd, numWidth, signatureHex) {
-    let pdfStr = u8ToLatin1(pdfU8);
+    // Validações básicas
+    if (!(pdfU8 instanceof Uint8Array)) throw new Error("pdfU8 deve ser Uint8Array");
+    [byteRangePos, contentsHexStart, contentsHexEnd, numWidth].forEach((v) => {
+        if (!Number.isInteger(v) || v < 0) throw new Error("Parâmetros de posição devem ser inteiros não-negativos");
+    });
+    if (contentsHexStart >= contentsHexEnd) throw new Error("contentsHexStart deve ser < contentsHexEnd");
+    if (contentsHexEnd > pdfU8.length) throw new Error("contentsHexEnd fora do arquivo");
 
-    const posOfOpeningBracket = contentsHexStart - 1;
-    const length1 = posOfOpeningBracket;
-    const posOfClosingBracket = contentsHexEnd;
-    const offset2 = posOfClosingBracket + 1;
-    const length2 = pdfStr.length - offset2;
+    // calculos de comprimento e offsets
+    const posOfOpeningBracket = contentsHexStart - 1; // posição do '<'
+    if (posOfOpeningBracket < 0) throw new Error("contentsHexStart inválido (sem '<' antes)");
+    const length1 = posOfOpeningBracket; // bytes antes do '<'
+    const posOfClosingBracket = contentsHexEnd; // posição do '>' (assumindo que não há espaços)
+    const offset2 = posOfClosingBracket + 1; // byte depois de '>'
+    if (offset2 > pdfU8.length) throw new Error("offset2 calculado além do final do arquivo");
+    const length2 = pdfU8.length - offset2;
 
+    // função para formatar números com zero-padding
     const pad = (v) => {
         const s = String(v);
-        if (s.length > numWidth) return s;
+        if (s.length > numWidth) return s; // não truncar — o caller deve garantir numWidth suficiente
         return s.padStart(numWidth, "0");
     };
 
+    // 1) Substituir os 4 números dentro do placeholder /ByteRange mantendo o mesmo comprimento total do segmento
     const brStart = byteRangePos;
-    const brEnd = pdfStr.indexOf("]", brStart);
-    if (brEnd === -1) throw new Error("ByteRange ']' not found when injecting.");
+    // encontrar o final do segmento de ByteRange (o primeiro ']' depois de brStart)
+    let brEnd = -1;
+    for (let i = brStart; i < pdfU8.length; i++) {
+        if (pdfU8[i] === 0x5d) { // ']' ASCII 0x5D
+            brEnd = i;
+            break;
+        }
+    }
+    if (brEnd === -1) throw new Error("ByteRange ']' não encontrado quando injetando.");
 
-    const newByteRange = `/ByteRange [${pad(0)} ${pad(length1)} ${pad(offset2)} ${pad(length2)}]`;
-    const oldSegment = pdfStr.substring(brStart, brEnd + 1);
-    if (newByteRange.length !== oldSegment.length) {
-        if (newByteRange.length < oldSegment.length) {
-            const diff = oldSegment.length - newByteRange.length;
-            const padLeft = Math.floor(diff / 2);
-            const padRight = diff - padLeft;
-            const padded = " ".repeat(padLeft) + newByteRange + " ".repeat(padRight);
-            pdfStr = pdfStr.slice(0, brStart) + padded + pdfStr.slice(brEnd + 1);
-        } else {
-            throw new Error("Não foi possível injetar ByteRange: novo segmento maior que o placeholder.");
+    // extrair segmento como string latin1
+    const oldSegmentStr = u8ToLatin1(pdfU8.subarray(brStart, brEnd + 1));
+
+    // procurar os 4 grupos numéricos dentro do segmento antigo e substituí-los por padded numbers
+    const numbersRE = /(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/;
+    const match = numbersRE.exec(oldSegmentStr);
+    let newSegmentStr;
+    if (match) {
+        // substitui apenas os números (preserva espaços e outros caracteres)
+        const padded1 = pad(0); // normalmente start1 será 0
+        const padded2 = pad(length1);
+        const padded3 = pad(offset2);
+        const padded4 = pad(length2);
+        newSegmentStr = oldSegmentStr.replace(numbersRE, `${padded1} ${padded2} ${padded3} ${padded4}`);
+        if (newSegmentStr.length !== oldSegmentStr.length) {
+            // se o comprimento mudou (por algum motivo), falhar em vez de deslocar o arquivo
+            throw new Error("Substituição mudou o comprimento do placeholder ByteRange — ajuste numWidth ou placeholder.");
         }
     } else {
-        pdfStr = pdfStr.slice(0, brStart) + newByteRange + pdfStr.slice(brEnd + 1);
+        // fallback: construir novo segmento e centralizar dentro do espaço disponível (menos ideal)
+        const newBr = `/ByteRange [${pad(0)} ${pad(length1)} ${pad(offset2)} ${pad(length2)}]`;
+        if (newBr.length > oldSegmentStr.length) {
+            throw new Error("Não foi possível injetar ByteRange: novo segmento maior que o placeholder.");
+        }
+        const diff = oldSegmentStr.length - newBr.length;
+        const padLeft = Math.floor(diff / 2);
+        const padRight = diff - padLeft;
+        newSegmentStr = " ".repeat(padLeft) + newBr + " ".repeat(padRight);
     }
 
+    // escrever newSegmentStr de volta para o pdfU8
+    const newSegmentU8 = latin1ToU8(newSegmentStr);
+    pdfU8.set(newSegmentU8, brStart);
+
+    // 2) Escrever a assinatura hex no intervalo reservado (contentsHexStart..contentsHexEnd - exclusivo)
     const hexStartIdx = contentsHexStart;
     const hexEndIdx = contentsHexEnd;
-    if (signatureHex.length > hexEndIdx - hexStartIdx) {
+    const reservedLen = hexEndIdx - hexStartIdx;
+    if (signatureHex.length > reservedLen) {
         throw new Error("Assinatura maior que espaço reservado. Aumente placeholderSize.");
     }
-    const paddedSignatureHex = signatureHex + "0".repeat((hexEndIdx - hexStartIdx) - signatureHex.length);
-    pdfStr = pdfStr.slice(0, hexStartIdx) + paddedSignatureHex + pdfStr.slice(hexEndIdx);
+    const paddedSignatureHex = signatureHex + "0".repeat(reservedLen - signatureHex.length);
+    // validar caracteres hex (opcional)
+    if (!/^[0-9A-Fa-f]*$/.test(paddedSignatureHex)) throw new Error("signatureHex contém caracteres não hexadecimais");
 
-    return latin1ToU8(pdfStr);
+    // escrever ASCII hex bytes
+    for (let i = 0; i < paddedSignatureHex.length; i++) {
+        pdfU8[hexStartIdx + i] = paddedSignatureHex.charCodeAt(i);
+    }
+
+    return pdfU8; // modificado in-place (retornamos por conveniência)
 }
 
 /* Convert base64 to hex (helper in case wallet returns base64) */
@@ -211,90 +255,74 @@ export default function WalletSignPage() {
         setMessage(null);
     }, []);
 
+    // Função auxiliar para calcular o hash ignorando o campo de assinatura (/Contents)
+    const calcDigestExcluindoAssinatura = (pdfU8, contentsHexStart, contentsHexEnd) => {
+        const posOfOpeningBracket = contentsHexStart - 1;
+        const posOfClosingBracket = contentsHexEnd;
+        const offset1 = 0;
+        const length1 = posOfOpeningBracket;
+        const offset2 = posOfClosingBracket + 1;
+        const length2 = pdfU8.length - offset2;
+        const part1 = pdfU8.subarray(offset1, offset1 + length1);
+        const part2 = pdfU8.subarray(offset2, offset2 + length2);
+        const concat = new Uint8Array(part1.length + part2.length);
+        concat.set(part1, 0);
+        concat.set(part2, part1.length);
+        return crypto.subtle.digest("SHA-256", concat);
+    };
+
     const handleSignWithWallet = async () => {
         setMessage(null);
-
         if (!pdfFile) {
             alert("Selecione um PDF pelo dropzone.");
             return;
         }
-
         if (!xumm) {
             alert("Xumm (Xaman Wallet) não disponível no contexto.");
             return;
         }
 
         setBusy(true);
-
         try {
-            // 1️⃣ Carrega PDF original
             const pdfArrayBuffer = await pdfFile.arrayBuffer();
             const pdfBytes = new Uint8Array(pdfArrayBuffer);
             const pdfDoc = await PDFDocument.load(pdfBytes);
 
-            // 2️⃣ Adiciona página QR e informações
-            const origin =
-                (typeof window !== "undefined" && window.location && window.location.origin) || "https://xahau.network";
-            const fullValidationUrl = walletAddress ? `${origin}/origo/${encodeURIComponent(walletAddress)}` : origin;
+            pdfDoc.setCreator("xahau.network");
+            pdfDoc.setProducer("Xahau Docproof Origo");
+            pdfDoc.setCreationDate(new Date("2000-01-01T00:00:00Z"));
+            pdfDoc.setModificationDate(new Date("2000-01-01T00:00:00Z"));
+
+            const origin = process.env.NEXT_PUBLIC_APP_URL;
+            const fullValidationUrl = `${origin}/origo/${encodeURIComponent(account)}`;
             const qrDataUrl = await QRCode.toDataURL(fullValidationUrl, { margin: 1, scale: 6 });
 
             const qrPage = pdfDoc.addPage([595, 842]);
             const pngImage = await pdfDoc.embedPng(qrDataUrl);
-            qrPage.drawImage(pngImage, { x: 50, y: 650, width: 160, height: 160 });
+            const qrWidth = 160;
+            const qrHeight = 160;
+            qrPage.drawImage(pngImage, { x: 50, y: 650, width: qrWidth, height: qrHeight });
             qrPage.drawText("Xahau Docproof Origo (Wallet Signed)", { x: 50, y: 620, size: 16, color: rgb(0, 0.2, 0.6) });
             qrPage.drawText(`Validation URL: ${fullValidationUrl}`, { x: 50, y: 590, size: 10 });
-            qrPage.drawText(`Signed at: ${new Date().toISOString()}`, { x: 50, y: 560, size: 10 });
+            const now = new Date();
+            qrPage.drawText(`Signed at: ${now.toISOString()}`, { x: 50, y: 560, size: 10 });
 
-            // 3️⃣ Salva PDF sem ByteRange real
             const pdfWithFieldBytes = await pdfDoc.save({ useObjectStreams: false });
             const pdfWithFieldU8 = new Uint8Array(pdfWithFieldBytes);
 
-            // 4️⃣ Adiciona placeholder para assinatura
             const placeholderSize = 8192;
             const appended = appendSignaturePlaceholder(pdfWithFieldU8, placeholderSize, "Signed via Xaman Wallet");
             const pdfForSign = appended.newPdfU8;
             const { byteRangePos, contentsHexStart, contentsHexEnd, numWidth } = appended;
 
-            // 5️⃣ Calcula SHA-256 do PDF final excluindo placeholder
-            const posOfOpeningBracket = contentsHexStart - 1;
-            const posOfClosingBracket = contentsHexEnd;
-            const part1 = pdfForSign.subarray(0, posOfOpeningBracket);
-            const part2 = pdfForSign.subarray(posOfClosingBracket + 1);
-            const concat = new Uint8Array(part1.length + part2.length);
-            concat.set(part1, 0);
-            concat.set(part2, part1.length);
-
-            const hashBuf = await crypto.subtle.digest("SHA-256", concat);
+            const hashBuf = await calcDigestExcluindoAssinatura(pdfForSign, contentsHexStart, contentsHexEnd);
             const hashU8 = new Uint8Array(hashBuf);
+            const hashHex = bufferToHex(hashU8);
 
-            // 6️⃣ Converte para hex para MemoData
-            const memoHex = Array.from(hashU8).map(b => b.toString(16).padStart(2, '0')).join('');
-
-            // 7️⃣ Cria payload para assinatura no Xaman Wallet
-            const payload = {
-                txjson: {
-                    TransactionType: 'AccountSet', // off-ledger
-                    Account: account,
-                    Fee: '0',
-                    Flags: 0,
-                    Memos: [
-                        {
-                            Memo: {
-                                MemoData: memoHex,
-                                MemoType: Buffer.from('DocumentHash').toString('hex'),
-                            },
-                        },
-                    ],
-                },
-                options: { submit: false, expire: 5 },
-                instructions: `Assine o hash do documento: ${memoHex.substring(0, 10)}...`,
-            };
-
-            // 8️⃣ Solicita assinatura ao Xaman Wallet
             const signatureHex = await requestSignatureFromWallet(xumm, hashU8, account);
+
             const normalizedSignatureHex = signatureHex.replace(/^0x/, "");
 
-            // 9️⃣ Injeta ByteRange e assinatura no placeholder
             const finalPdfU8 = injectByteRangeAndSignature(
                 pdfForSign,
                 byteRangePos,
@@ -303,8 +331,7 @@ export default function WalletSignPage() {
                 numWidth,
                 normalizedSignatureHex
             );
-
-            // 🔟 Download do PDF final
+            
             const blob = new Blob([finalPdfU8], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -315,14 +342,9 @@ export default function WalletSignPage() {
             a.remove();
             URL.revokeObjectURL(url);
 
-            // 1️⃣1️⃣ SHA-256 do PDF final (após injetar assinatura)
-            const finalDigestHex = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", finalPdfU8)))
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('');
-
             setMessage({
                 status: "ok",
-                text: `PDF assinado via Xaman Wallet. SHA256 do arquivo final: ${finalDigestHex}`,
+                text: `PDF assinado via Xaman Wallet. SHA256 do arquivo (ignorando assinatura): ${hashHex}`,
             });
         } catch (err) {
             console.error("Erro ao assinar com wallet:", err);
@@ -333,29 +355,28 @@ export default function WalletSignPage() {
         }
     };
 
-
     return (
         <div className="max-w-4xl mx-auto p-6">
             <h1 className="text-3xl font-bold mb-3">Origo &ndash; Sign PDF (Xaman Wallet)</h1>
             <p className="text-sm text-slate-600 mb-6">
-                Página dedicada exclusivamente ao fluxo de assinatura usando a Xaman Wallet (xumm). Arraste um PDF, clique para assinar
-                pela wallet e um PDF com a assinatura embutida será gerado.
+                Dedicated page exclusively for the signing workflow using the Xaman Wallet (xumm). Drag a PDF, click to sign via the wallet, and a PDF with the embedded signature will be generated.
             </p>
 
             <div className="space-y-6">
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="font-semibold mb-2">1) Selecione o documento (PDF)</h2>
-                    <p className="text-xs text-slate-500 mb-3">Arraste e solte ou selecione um PDF. Não armazenamos nada.</p>
+                    <h2 className="font-semibold mb-2">1) Choose Document (PDF)</h2>
+                    <p className="text-xs text-slate-500 mb-3">Drag and drop or select a PDF. We do not store anything.</p>
                     <Dropzone onFileChange={handleDropzoneFile} />
-                    {pdfFile && <div className="mt-3 text-sm">Arquivo selecionado: <strong>{pdfFile.name}</strong></div>}
+                    {pdfFile && <div className="mt-3 text-sm">Selected file: <strong>{pdfFile.name}</strong></div>}
                 </div>
 
                 <div className="p-6 bg-white border rounded-lg shadow-sm">
-                    <h2 className="font-semibold mb-2">2) Endereço Xahau para validação (opcional)</h2>
+                    <h2 className="font-semibold mb-2">2) Xahau Address for Validation</h2>
                     <input
-                        placeholder="Insira a carteira Xahau (wallet) que será incluída no PDF"
-                        value={walletAddress}
-                        onChange={(e) => setWalletAddress(e.target.value)}
+                        placeholder="Enter the Xahau wallet address to be included in the PDF"
+                        value={account}
+                        disabled
+                        readOnly
                         className="input input-bordered w-full"
                     />
                 </div>
@@ -366,7 +387,7 @@ export default function WalletSignPage() {
                         onClick={handleSignWithWallet}
                         disabled={busy}
                     >
-                        {busy ? "Assinando..." : "Assinar e Gerar PDF (via Xaman Wallet)"}
+                        {busy ? "Signing..." : "Sign and Generate PDF (via Xaman Wallet)"}
                     </button>
 
                     <button
@@ -377,7 +398,7 @@ export default function WalletSignPage() {
                             setMessage(null);
                         }}
                     >
-                        Limpar
+                        Clear
                     </button>
                 </div>
 

@@ -1,13 +1,10 @@
-import { parse } from "@iarna/toml";
+import { parse as parseToml } from "@iarna/toml";
 import axios from "axios";
 import { Buffer } from "buffer";
 import crypto from "crypto";
 import { Client, deriveAddress } from "xrpl";
-//import { encode } from "ripple-binary-codec"
-import { verify } from "xrpl-keypairs";
-import { decode, encode, encodeForSigning } from 'ripple-binary-codec';
-import { sha512Half } from "ripple-binary-codec/dist/hashes";
-
+import { decode, encodeForSigning } from 'ripple-binary-codec';
+import { verify } from "ripple-keypairs";
 
 export type VerifyPayload = {
     sha256: string;
@@ -39,10 +36,17 @@ export type NormalizeResult = {
 type PubKeyInfo = { kind: "pem"; pem: string } | { kind: "unknown" };
 
 export class SignatureService {
-    // -------------------------
-    // Utilities
-    // -------------------------
+    /**
+     * WebSocket URL for connecting to the Xahau ledger.
+     */
+    private readonly xahauWsUrl = "wss://xahau.network";
 
+    /**
+     * Convert hex string to Buffer strictly.
+     * Returns null on invalid input (non-hex, odd length, empty).
+     * Valid input: optional 0x prefix, even-length hex digits only.
+     * @return Buffer or null.
+     */
     private hexToBufferStrict(hex: string): Buffer | null {
         if (!hex) return null;
         const s = String(hex).trim().replace(/\s+/g, "");
@@ -64,13 +68,13 @@ export class SignatureService {
         return { buf: buf.slice(0, end), trimmed: buf.length - end };
     }
 
+    /**
+     * Calculate SHA-256 fingerprint (hex) of given SPKI DER Buffer.
+     * @return hex string
+     */
     public spkiFingerprintHex(spki: Buffer): string {
         return crypto.createHash("sha256").update(spki).digest("hex");
     }
-
-    // -------------------------
-    // Normalization attempts
-    // -------------------------
 
     /**
      * Try to normalize a DER Buffer into an SPKI DER Buffer.
@@ -85,7 +89,6 @@ export class SignatureService {
      * Returns SPKI DER Buffer when successful, otherwise null.
      */
     private tryNormalizeBufferToSpkiDer(buf: Buffer, errors: NormalizeError[], notes: string[] = []): Buffer | null {
-        // Helper to attempt createPublicKey with given type and return SPKI DER
         const tryCreatePublicKey = (b: Buffer, format: "spki" | "pkcs1" | "pkcs8") => {
             try {
                 const keyObj = crypto.createPublicKey({ key: b, format: "der", type: format } as any);
@@ -97,28 +100,24 @@ export class SignatureService {
             }
         };
 
-        // 1) SPKI DER
         const spki = tryCreatePublicKey(buf, "spki");
         if (spki) {
             notes.push("imported-as-spki");
             return spki;
         }
 
-        // 2) PKCS#1 (RSA PUBLIC KEY)
         const pkcs1 = tryCreatePublicKey(buf, "pkcs1");
         if (pkcs1) {
             notes.push("imported-as-pkcs1");
             return pkcs1;
         }
 
-        // 3) PKCS#8
         const pkcs8 = tryCreatePublicKey(buf, "pkcs8");
         if (pkcs8) {
             notes.push("imported-as-pkcs8");
             return pkcs8;
         }
 
-        // 4) X.509 certificate DER via X509Certificate
         try {
             // runtime check
             // @ts-ignore
@@ -143,7 +142,6 @@ export class SignatureService {
             errors.push({ step: "x509cert", error: String(err?.message ?? err) });
         }
 
-        // 5) Try trimmed buffer (remove trailing 0x00)
         const trimmedResult = this.trimTrailingNulls(buf);
         if (trimmedResult.trimmed > 0) {
             notes.push(`trimmed-trailing-zero-bytes=${trimmedResult.trimmed}`);
@@ -167,7 +165,6 @@ export class SignatureService {
                 return pkcs8T;
             }
 
-            // try X509 on trimmed
             try {
                 // @ts-ignore
                 const X509Certificate = (crypto as any).X509Certificate;
@@ -192,7 +189,6 @@ export class SignatureService {
             }
         }
 
-        // 6) Try PKCS#7 parsing using node-forge (optional)
         try {
             // eslint-disable-next-line @typescript-eslint/no-var-requires
             const forge = require("node-forge");
@@ -235,10 +231,6 @@ export class SignatureService {
         return null;
     }
 
-    // -------------------------
-    // Public API - normalization / compare / diagnose
-    // -------------------------
-
     public normalizeHexDerToSpkiDer(hexOrBuffer: string | Buffer): Buffer | null {
         const errors: NormalizeError[] = [];
         const notes: string[] = [];
@@ -262,6 +254,11 @@ export class SignatureService {
         }
     }
 
+    /**
+     * Normalize a domain public key (PEM or hex DER) into SPKI DER Buffer.
+     * Returns Buffer or null on failure.
+     * @return Buffer or null.
+     */
     public normalizeDomainPubKeyToSpkiDer(domainPubKey: string): Buffer | null {
         if (!domainPubKey) return null;
         const s = String(domainPubKey).trim();
@@ -361,159 +358,70 @@ export class SignatureService {
         return result;
     }
 
-    private sha512Half(buf: Buffer): Buffer {
-        const hash = crypto.createHash("sha512").update(buf).digest();
-        return hash.slice(0, 32);
+    /**
+     * Top-level verifier which will decide whether to verify as Xumm or Legacy.
+     * Strategy: validate base fields, then attempt to decode as Xumm.
+     * If decode succeeds and contains SigningPubKey & TxnSignature -> Xumm path.
+     * Otherwise -> fallback to Legacy path.
+     */
+    public async verifyPayload(payload: VerifyPayload): Promise<VerifyResult> {
+        const baseValidation = this.ensureBaseFields(payload);
+        if (baseValidation) return baseValidation;
+
+        const sigHex = String(payload.signature);
+        let sigBuf: Buffer;
+        try {
+            sigBuf = Buffer.from(sigHex, "hex");
+        } catch (err: any) {
+            return this.verifyLegacyPayload(payload);
+        }
+
+        const { buf: trimmedBuf } = this.trimTrailingNulls(sigBuf);
+        try {
+            const decoded = decode(trimmedBuf.toString("hex"));
+            if (decoded?.SigningPubKey && decoded?.TxnSignature) {
+                return this.verifyPayloadXumm(payload, decoded);
+            } else {
+                return this.verifyLegacyPayload(payload);
+            }
+        } catch (_err) {
+            return this.verifyLegacyPayload(payload);
+        }
     }
-
-    // -------------------------
-    // Full flow wrapper for controllers
-    // -------------------------
-
-    private parseXummSignField(blobHex: string) {
-        const buf = Buffer.from(blobHex, 'hex');
-        let offset = 0;
-
-        // SigningPubKey
-        if (buf[offset] !== 0x73) throw new Error("Expected SigningPubKey marker 0x73");
-        offset++;
-        const pubKeyLen = buf[offset++];
-        if (offset + pubKeyLen > buf.length) throw new Error("Buffer too short for SigningPubKey");
-        const pubKey = buf.slice(offset, offset + pubKeyLen);
-        offset += pubKeyLen;
-
-        // TxnSignature
-        if (offset >= buf.length || buf[offset] !== 0x74) throw new Error("Expected TxnSignature marker 0x74");
-        offset++;
-        const sigLen = buf[offset++];
-        if (offset + sigLen > buf.length) throw new Error("Buffer too short for TxnSignature");
-        const signature = buf.slice(offset, offset + sigLen);
-        offset += sigLen;
-
-        // Remove the strict check to allow trailing data
-        // if (offset !== buf.length) throw new Error("Unexpected extra data after TxnSignature");
-
-        return {
-            SigningPubKey: pubKey.toString('hex'),
-            TxnSignature: signature.toString('hex')
-        };
-    }
-
 
     /**
-     * Converte assinatura 64–72 bytes r||s do Xumm para DER ASN.1.
+     * Explicit Xumm verification.
+     * If decodedParam is provided we reuse it (avoid double-decoding).
      */
-    private ecdsaRS_toDER(rs: Buffer): Buffer {
-        let r: Buffer = rs.slice(0, rs.length / 2) as Buffer;
-        let s: Buffer = rs.slice(rs.length / 2) as Buffer;
-
-        const trim = (buf: Buffer): Buffer => {
-            let i = 0;
-            while (i < buf.length - 1 && buf[i] === 0x00) i++;
-            buf = buf.slice(i) as Buffer;
-            if (buf[0] & 0x80) {
-                buf = Buffer.concat([Buffer.from([0x00]), buf]) as Buffer;
-            }
-            return buf;
-        };
-
-        r = trim(r);
-        s = trim(s);
-
-        const totalLen = 2 + r.length + 2 + s.length;
-        return Buffer.concat([
-            Buffer.from([0x30, totalLen, 0x02, r.length]),
-            r,
-            Buffer.from([0x02, s.length]),
-            s
-        ]) as Buffer;
-    }
-
-
-    private async reconstructSignInTransaction(digestHex: string, account: string): Promise<string> {
-        // Validate inputs
-        if (!/^[0-9a-fA-F]{64}$/.test(digestHex)) {
-            throw new Error("digestHex must be a 32-byte hex string");
-        }
-        if (!account || !account.startsWith('r')) {
-            throw new Error("Invalid account address");
-        }
-
-        // Construct the transaction to match the original Xumm payload
-        const tx: any = {
-            TransactionType: "AccountSet", // tipo oficial
-            Account: account,
-            Fee: "0",
-            Sequence: 0,
-            Flags: 0,
-            Memos: [
-                {
-                    Memo: {
-                        MemoData: digestHex,
-                        MemoType: Buffer.from("DocumentHash").toString("hex"),
-                    },
-                },
-            ],
-        };
-
-        console.log("Reconstructed tx:", JSON.stringify(tx, null, 2)); // Debug
-
-        try {
-            const encodedTx = encodeForSigning(tx);
-            console.log("Encoded tx hex:", encodedTx); // Debug
-            return encodedTx;
-        } catch (err) {
-            console.error("Error encoding transaction:", err);
-            throw new Error(`Failed to encode transaction: ${String(err)}`);
-        }
-    }
-
-    public async verifyPayload(payload: VerifyPayload): Promise<VerifyResult> {
+    public async verifyPayloadXumm(payload: VerifyPayload, decodedParam?: any): Promise<VerifyResult> {
         try {
             const { sha256, signature, rAddress, id } = payload;
 
-            if (!sha256) return { status: 400, body: { message: "Missing sha256 in body" } };
-            if (!rAddress) return { status: 400, body: { message: "Missing rAddress in body" } };
-            if (!signature) return { status: 400, body: { message: "Missing signature hex in body" } };
+            const baseValidation = this.ensureBaseFields(payload);
+            if (baseValidation) return baseValidation;
 
             if (!/^(0x)?[0-9a-fA-F]{64}$/.test(String(sha256))) {
                 return { status: 400, body: { message: "sha256 must be a 32-byte hex string" } };
             }
 
-            // 1️⃣ Decodifica o blob de assinatura do Xumm
-            let decoded: any;
-
-
-
-            // decodifica usando xrpl-binary-codec
-
+            let decoded: any = decodedParam;
             try {
-                const sigBuf = Buffer.from(signature, 'hex');
-                const trimmedSig = this.trimTrailingNulls(sigBuf);
-                decoded = decode(trimmedSig.buf.toString('hex'));
+                if (!decoded) {
+                    const sigBuf = Buffer.from(String(signature), "hex");
+                    const trimmed = this.trimTrailingNulls(sigBuf);
+                    decoded = decode(trimmed.buf.toString("hex"));
+                }
             } catch (err) {
                 return { status: 400, body: { valid: false, reason: "Erro ao decodificar assinatura", details: String(err) } };
             }
-            //decoded = this.parseXummSignField(signature);
-            console.log(decoded);
-            /* try {
-                decoded = decode(signature);
-            } catch (err) {
-                console.error("Erro ao decodificar assinatura:", err);
-                return { status: 400, body: { valid: false, reason: "Signature blob inválido ou truncado" } };
-            } */
 
             const signingPubKey = decoded.SigningPubKey;
             const txnSignature = decoded.TxnSignature;
 
             if (!signingPubKey || !txnSignature) {
-                return {
-                    status: 400,
-                    body: { valid: false, reason: "Campos SigningPubKey ou TxnSignature ausentes" },
-                };
+                return { status: 400, body: { valid: false, reason: "Campos SigningPubKey ou TxnSignature ausentes" } };
             }
 
-            // 2️⃣ Deriva o endereço da chave pública
             const derivedAddress = deriveAddress(signingPubKey);
             if (derivedAddress !== rAddress) {
                 return {
@@ -526,48 +434,48 @@ export class SignatureService {
                 };
             }
 
-            console.log("derivedAddress matches rAddress:", derivedAddress);
-            console.log("rAddress:", rAddress);
-            
-            const digestBuf = this.sha512Half(Buffer.from(sha256, 'hex'));
-            if (!digestBuf) {
-                return { status: 400, body: { valid: false, reason: "sha256 inválido" } };
+            const txForSigning = { ...decoded };
+
+            console.log('Sha256', sha256);
+            console.log('Memodata', txForSigning.Memos[0].Memo.MemoData);
+
+            txForSigning.Sequence = Number(decoded.Sequence);
+            if (decoded.LastLedgerSequence !== undefined) txForSigning.LastLedgerSequence = Number(decoded.LastLedgerSequence);
+            if (decoded.NetworkID !== undefined) txForSigning.NetworkID = Number(decoded.NetworkID);
+            txForSigning.Fee = String(decoded.Fee);
+
+            const blob = encodeForSigning(txForSigning);
+            const isValid: boolean = verify(blob, txnSignature, signingPubKey);
+
+            if (!isValid) {
+                return { status: 200, body: { valid: false, reason: "Invalid signature for the provided payload" } };
             }
 
-            const client = new Client("wss://xahau.network");
-            (client as any).apiVersion = 1;
-            let domain: string | undefined;
-            try {
-                await client.connect();
-                const response = await client.request({ command: "account_info", account: rAddress });
-                if (response.result?.account_data?.Domain) {
-                    const domainHex = response.result.account_data.Domain;
-                    domain = Buffer.from(String(domainHex), "hex").toString("ascii");
+            if (txForSigning.Memos && Array.isArray(txForSigning.Memos) && txForSigning.Memos.length > 0) {
+                const memoDataHex = txForSigning.Memos[0].Memo.MemoData;
+                if (sha256.toLowerCase() !== memoDataHex.toLowerCase()) {
+                    return {
+                        status: 200,
+                        body: {
+                            valid: false,
+                            reason: "SHA256 hash does not match MemoData in transaction",
+                            details: { expected: sha256, found: memoDataHex },
+                        },
+                    };
                 }
-            } finally {
-                try {
-                    await client.disconnect();
-                } catch (_) { }
             }
 
-            // domínio opcional — usado apenas se houver DOCPROOF
+            const domain = await this.getDomainFromLedger(rAddress).catch(() => undefined);
+
             let domainInfo = null;
             if (domain) {
-                try {
-                    const resp = await axios.get(`https://${domain}/.well-known/xahau.toml`, {
-                        responseType: "text",
-                        validateStatus: () => true,
-                    });
-                    if (resp.status === 200) {
-                        const toml = parse(resp.data);
-                        const docproofs = toml?.DOCPROOF ?? [];
-                        const found = Array.isArray(docproofs)
-                            ? docproofs.find((d: any) => d.address === rAddress && (!id || d.id === id))
-                            : null;
-                        domainInfo = found ?? null;
-                    }
-                } catch (_) {
-                    // silencioso
+                const toml = await this.fetchToml(domain).catch(() => null);
+                if (toml) {
+                    const docproofs = toml?.DOCPROOF ?? [];
+                    const found = Array.isArray(docproofs)
+                        ? docproofs.find((d: any) => d.address === rAddress && (!id || d.id === id))
+                        : null;
+                    domainInfo = found ?? null;
                 }
             }
 
@@ -575,7 +483,7 @@ export class SignatureService {
                 status: 200,
                 body: {
                     valid: true,
-                    message: "Assinatura válida e corresponde ao endereço informado",
+                    message: "Valid signature",
                     details: {
                         signingPubKey,
                         derivedAddress,
@@ -586,102 +494,132 @@ export class SignatureService {
                 },
             };
         } catch (err: any) {
-            console.error("SignatureService.verifyPayload error:", err);
-            return {
-                status: 500,
-                body: { message: `Internal error: ${String(err?.message ?? err)}` },
-            };
+            console.error("SignatureService.verifyPayloadXumm error:", err);
+            return { status: 500, body: { message: `Internal error: ${String(err?.message ?? err)}` } };
         }
     }
 
     /**
-     * verifyPayload:
-     * - expects signature as hex DER (no 0x) that contains a certificate/public-key.
-     * - compares the public key embedded in the signature blob with the pubkey declared in the domain TOML.
-     * - Returns HTTP-like { status, body } shape for controller consumption.
+     * Legacy verification (DOCPROOF public key comparison).
+     * This method mirrors your original verifyLegacyPayload but reuses helpers.
      */
     public async verifyLegacyPayload(payload: VerifyPayload): Promise<VerifyResult> {
         try {
             const { sha256, signature, rAddress, id } = payload;
 
-            if (!sha256) return { status: 400, body: { message: "Missing sha256 in body" } };
-            if (!rAddress) return { status: 400, body: { message: "Missing rAddress in body" } };
-            if (!signature) return { status: 400, body: { message: "Missing signature hex in body" } };
+            const baseValidation = this.ensureBaseFields(payload);
+            if (baseValidation) return baseValidation;
 
             if (!/^(0x)?[0-9a-fA-F]{64}$/.test(String(sha256))) {
                 return { status: 400, body: { message: "sha256 must be a 32-byte hex string" } };
             }
 
-            // fetch domain from ledger
-            const client = new Client("wss://xahau.network");
-            (client as any).apiVersion = 1;
             let domain: string | undefined;
             try {
-                await client.connect();
-                const response = await client.request({ command: "account_info", account: rAddress });
-                if (response.result?.account_data?.Domain) {
-                    const domainHex = response.result.account_data.Domain;
-                    domain = Buffer.from(String(domainHex), "hex").toString("ascii");
-                } else {
-                    throw new Error("Domain not set on ledger for this account");
+                domain = await this.getDomainFromLedger(rAddress);
+                if (!domain) {
+                    return { status: 500, body: { message: "Unable to resolve domain from ledger" } };
                 }
             } catch (err: any) {
-                try {
-                    await client.disconnect();
-                } catch (_) { }
                 return { status: 500, body: { message: `Ledger error: ${String(err?.message ?? err)}` } };
-            } finally {
-                try {
-                    await client.disconnect();
-                } catch (_) { }
             }
 
-            if (!domain) return { status: 500, body: { message: "Unable to resolve domain from ledger" } };
+            const toml = await this.fetchToml(domain).catch((err) => {
+                return null;
+            });
 
-            // fetch xahau.toml
-            let tomlData: any;
-            try {
-                const resp = await axios.get(`https://${domain}/.well-known/xahau.toml`, {
-                    responseType: "text",
-                    validateStatus: () => true,
-                });
-                if (!resp || resp.status !== 200) {
-                    return { status: 500, body: { message: "xahau.toml not found on domain", error: resp?.status.toString() } };
-                }
-                tomlData = parse(resp.data);
-            } catch (err: any) {
-                return { status: 500, body: { message: `Error fetching toml: ${String(err?.message ?? err)}` } };
+            if (!toml) {
+                return { status: 500, body: { message: "xahau.toml not found on domain" } };
             }
 
-            if (!Array.isArray(tomlData?.DOCPROOF) || tomlData.DOCPROOF.length === 0) {
+            if (!Array.isArray(toml?.DOCPROOF) || toml.DOCPROOF.length === 0) {
                 return { status: 400, body: { message: "No DOCPROOF entries in toml" } };
             }
 
-            // find docproof by address + optional id
-            let found: any = null;
-            for (const docproof of tomlData.DOCPROOF) {
-                const addrMatch = docproof.address === rAddress;
-                const idMatch = id ? docproof.id === id : true;
-                if (addrMatch && idMatch) {
-                    found = docproof;
-                    break;
-                }
-            }
+            const found = this.findDocProofEntry(toml.DOCPROOF, rAddress, id ? String(id) : undefined);
 
             if (!found) return { status: 404, body: { message: "No matching DOCPROOF entry found" } };
             if (!found.pubkey) return { status: 400, body: { message: "No pubkey in DOCPROOF entry" } };
 
-            // compare
-            const cmp = this.compareDomainWithSignatureHex(found.pubkey, signature);
+            const cmp = this.compareDomainWithSignatureHex(found.pubkey, String(signature));
             if (cmp.ok) {
                 return { status: 200, body: { valid: true, message: "Public keys match", details: cmp.details } };
             } else {
                 return { status: 200, body: { valid: false, reason: "Public keys do not match", details: cmp.details } };
             }
         } catch (err: any) {
-            console.error("SignatureService.verifyPayload error:", err);
+            console.error("SignatureService.verifyLegacyPayload error:", err);
             return { status: 500, body: { message: `Internal error: ${String(err?.message ?? err)}` } };
         }
+    }
+
+    /**
+     * Ensure that the payload contains the required base fields.
+     * Returns VerifyResult with 400 status on missing fields, otherwise null.
+     * @return VerifyResult | null
+     */
+    private ensureBaseFields(payload: VerifyPayload): VerifyResult | null {
+        if (!payload) return { status: 400, body: { message: "Missing payload" } };
+        const { sha256, signature, rAddress } = payload;
+        if (!sha256) return { status: 400, body: { message: "Missing sha256 in body" } };
+        if (!rAddress) return { status: 400, body: { message: "Missing rAddress in body" } };
+        if (!signature) return { status: 400, body: { message: "Missing signature hex in body" } };
+        return null;
+    }
+
+    /**
+     * Fetches the Domain string stored in the account_data.Domain field on ledger.
+     * Resolves to domain string (ascii) or throws on ledger errors.
+     */
+    private async getDomainFromLedger(rAddress: string): Promise<string | undefined> {
+        const client = new Client(this.xahauWsUrl);
+        (client as any).apiVersion = 1;
+        try {
+            await client.connect();
+            const response = await client.request({ command: "account_info", account: rAddress });
+            if (response.result?.account_data?.Domain) {
+                const domainHex = response.result.account_data.Domain;
+                return Buffer.from(String(domainHex), "hex").toString("ascii");
+            } else {
+                return undefined;
+            }
+        } finally {
+            try {
+                await client.disconnect();
+            } catch (_) { }
+        }
+    }
+
+    /**
+     * Fetches and parses xahau.toml from the given domain root.
+     * Throws on network or parse issues; caller can catch.
+     */
+    private async fetchToml(domain: string): Promise<any> {
+        const resp = await axios.get(`https://${domain}/.well-known/xahau.toml`, {
+            responseType: "text",
+            validateStatus: () => true,
+        });
+        if (!resp || resp.status !== 200) {
+            throw new Error(`toml not found (${resp?.status})`);
+        }
+        return parseToml(resp.data);
+    }
+
+    /**
+     * Finds a DOCPROOF entry matching the given rAddress and optional id.
+     * Returns the entry object or null if not found.
+     * @param entries Array of DOCPROOF entries from toml
+     * @param rAddress Ripple address to match
+     * @param id Optional id to match
+     * @return matching entry or null
+     */
+    private findDocProofEntry(entries: any[], rAddress: string, id?: string | number): any | null {
+        for (const docproof of entries) {
+            const addrMatch = docproof.address === rAddress;
+            const idMatch = id ? docproof.id === id : true;
+            if (addrMatch && idMatch) return docproof;
+        }
+        return null;
     }
 }
 

@@ -30,16 +30,6 @@ const upload = multer({
 });
 
 origoRoutes.post(
-  "/sign",
-  (authenticateJWT as any),
-  upload.fields([
-    { name: "pdf", maxCount: 1 },
-    { name: "cert", maxCount: 1 },
-  ]) as any,
-  (OrigoController.sign as any)
-);
-
-origoRoutes.post(
   "/verify-signature",
   (OrigoController.verifySignature as any)
 );

@@ -4,7 +4,7 @@ import React, { useContext, useState } from "react";
 import Link from "next/link";
 import { AppContext } from "@/context/AppContext";
 
-const XAHauTOML_EXAMPLE = `[[DOCPROOF]]
+const XAHAU_TOML_EXAMPLE = `[[DOCPROOF]]
 id = "429f076e-0b1c-412c-b1b0-c678cc6cb173" # UUIDv4 - https://www.uuidgenerator.net/version4
 address = "rNqe9wrMJM3D6hwcTtNmYTtfcjbHsHRDSg" # rAddress of the Xahau Account
 desc = "Xahau Docproof" # Account description
@@ -78,7 +78,6 @@ export default function Origo() {
       setSubmitting(true);
 
       if (!xumm) {
-        // Some wallets inject 'xrpl' or expose a generic provider; inform user and show tx to copy
         setAssocError(
           "Xumm Wallet not detected in this page (window.xumm). You can copy the prepared transaction and sign/submit it with your wallet."
         );
@@ -87,25 +86,17 @@ export default function Origo() {
         return;
       }
 
-      // 3) request with method name (EIP-1193 style for custom provider)
-      console.log(typeof xumm.payload.create);
-      //if (typeof xumm.payload === 'object' && typeof xumm.payload.create === 'function') {
-        // try a common RPC style call used by some wallets; this is exploratory
-        try {
-          const res = await xumm.payload.create({ txjson: tx }).then(payload => {
-            setAssocStatus(`Submitted: ${JSON.stringify(payload, null, 2)}`);
-            // document.getElementById('payload').innerHTML = JSON.stringify(payload, null, 2)
-            xumm.xapp.openSignRequest(payload)
-          
-          });
-          setAssocStatus(`Submitted: ${JSON.stringify(res)}`);
-          setSubmitting(false);
-          return;
-        } catch (e) {
-          console.error("xumm.payload.create failed:", e);
-          // ignore and fallback
-        }
-      //}
+      try {
+        const res = await xumm.payload.create({ txjson: tx }).then(payload => {
+          setAssocStatus(`Submitted: ${JSON.stringify(payload, null, 2)}`);
+          xumm.xapp.openSignRequest(payload)
+        });
+        setAssocStatus(`Submitted: ${JSON.stringify(res)}`);
+        setSubmitting(false);
+        return;
+      } catch (e) {
+        console.error("xumm.payload.create failed:", e);
+      }
 
       // If we reached here, we couldn't call a signer method. Provide tx for manual flow.
       setAssocError(
@@ -186,30 +177,42 @@ export default function Origo() {
         {/* HOW IT WORKS */}
         <section id="how" className="mt-16 grid md:grid-cols-3 gap-6 items-start">
           <div className="md:col-span-2 p-6 bg-white/3 rounded-lg glass-card">
-            <h3 className="text-xl font-semibold text-slate-100">How Origo works</h3>
+            <h3 className="text-xl font-semibold text-slate-100">How Origo Works</h3>
+            <p className="mt-2 text-slate-300">
+              Origo makes PDF signature verification simple, secure, and adaptable to both traditional and modern workflows. Whether you use legacy PFX certificates or the Xaman Wallet for blockchain-powered signing, Origo ensures trust and transparency for every document.
+            </p>
+
             <ol className="mt-4 space-y-2 text-slate-300 list-decimal list-inside">
               <li>
-                Upload a signed PDF or submit the signature blob (DER / PKCS#7). Origo can extract certificates from the PDF when provided.
+                Upload a signed PDF or provide the signature blob (DER / PKCS#7). Origo can extract certificates directly from your PDF for seamless verification.
               </li>
-              <li>Origo looks up the domain listed on the XRPL account (Xahau) and downloads <code>/.well-known/xahau.toml</code>.</li>
-              <li>We extract the public key from the signature blob (certificate or PKCS#7) and compare it against the DOCPROOF entry in the toml.</li>
-              <li>If the public key matches the domain's declared key, Origo returns a concise "VALID" result; otherwise it returns diagnostics to help you troubleshoot.</li>
+              <li>
+                Origo automatically checks the XRPL account domain (via Xahau) and fetches <code>/.well-known/xahau.toml</code> to validate the signature.
+              </li>
+              <li>
+                The public key from your certificate or PKCS#7 blob is extracted and compared against the DOCPROOF entry in the toml.
+              </li>
+              <li>
+                A match returns a clear "VALID" confirmation. If there’s any discrepancy, Origo provides detailed diagnostics to help you resolve it quickly.
+              </li>
             </ol>
 
             <p className="mt-4 text-slate-400 text-sm">
-              Note: Current flow compares public key material. Full cryptographic verification of PDF byte-range signed attributes is supported when PKCS#7 extraction is available and the PDF byte-range digest is provided.
+              Note: Origo supports both traditional public key verification and full cryptographic validation of PDF byte-range signed attributes when PKCS#7 extraction is available.
             </p>
           </div>
 
           <div className="p-6 bg-white/3 rounded-lg glass-card">
             <h4 className="font-semibold text-slate-100">Ideal for</h4>
             <ul className="mt-3 text-slate-300 space-y-2 text-sm">
-              <li>Legal & compliance teams</li>
-              <li>Document workflows & audits</li>
-              <li>Decentralized organizations</li>
+              <li>Legal & compliance teams seeking reliable signature validation</li>
+              <li>Document workflows, audits, and proof of authenticity</li>
+              <li>Decentralized organizations leveraging blockchain for trust</li>
+              <li>Teams transitioning from traditional PFX signing to modern wallet-based workflows</li>
             </ul>
           </div>
         </section>
+
 
         {/* XAMAN WALLET / DOMAIN ASSOCIATE */}
         <section id="xaman" className="mt-16 grid md:grid-cols-2 gap-6 items-start">
@@ -231,7 +234,7 @@ export default function Origo() {
 
               <label className="text-xs text-slate-300">Your XRPL account (rAddress)</label>
               <input
-                value={accountInput}
+                value={accountInput || account || ""}
                 onChange={(e) => setAccountInput(e.target.value)}
                 placeholder="rPT... (your account)"
                 className="input input-bordered w-full bg-white/5 text-slate-100"
@@ -309,13 +312,13 @@ export default function Origo() {
             <div className="mt-4">
               <div className="text-xs text-slate-300 mb-2">Example <code>xahau.toml</code> (copy below):</div>
               <pre className="bg-black/20 p-4 rounded text-xs text-slate-200 overflow-auto">
-                {XAHauTOML_EXAMPLE}
+                {XAHAU_TOML_EXAMPLE}
               </pre>
 
               <div className="mt-3 flex gap-3">
                 <button
                   className="btn btn-sm btn-outline"
-                  onClick={() => copyToClipboard(XAHauTOML_EXAMPLE)}
+                  onClick={() => copyToClipboard(XAHAU_TOML_EXAMPLE)}
                 >
                   Copy example toml
                 </button>
@@ -330,7 +333,7 @@ export default function Origo() {
               </div>
 
               <div className="mt-4 text-slate-400 text-xs">
-                Important: Make sure the <code>pubkey</code> contains the public key (PEM) you want verifiers to match. Origo will attempt to parse PEM and DER forms from the signature blob to compare public key bytes.
+                Important: For legacy model, make sure the <code>pubkey</code> contains the public key (PEM) you want verifiers to match. Origo will attempt to parse PEM and DER forms from the signature blob to compare public key bytes.
               </div>
             </div>
           </div>
