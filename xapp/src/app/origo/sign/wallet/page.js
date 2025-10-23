@@ -1,14 +1,13 @@
 "use client";
 
-import Dropzone from "@/components/UI/Dropzone";
-import { useCallback, useContext, useState } from "react";
-import QRCode from "qrcode";
-import { PDFDocument, rgb } from "pdf-lib";
-// NOTE: adjust the import path for your AppContext where "xumm" is provided
-import { AppContext } from "@/context/AppContext";
-import { sign } from "crypto";
 
-/* ---------- Helpers ---------- */
+import PageLoading from "@/components/PageLoader";
+import Dropzone from "@/components/UI/Dropzone";
+import { AppContext } from "@/context/AppContext";
+import { useRouter } from "next/navigation";
+import { PDFDocument, rgb } from "pdf-lib";
+import QRCode from "qrcode";
+import { useCallback, useContext, useEffect, useState } from "react";
 
 const bufferToHex = (buffer) =>
     Array.prototype.map
@@ -28,7 +27,6 @@ const latin1ToU8 = (str) => {
     for (let i = 0; i < str.length; i++) u8[i] = str.charCodeAt(i);
     return u8;
 };
-const uint8ToBinaryString = (u8) => u8ToLatin1(u8);
 
 function appendSignaturePlaceholder(pdfU8, placeholderSizeBytes = 8192, reason = "Document signed") {
     const pdfStr = u8ToLatin1(pdfU8);
@@ -226,21 +224,27 @@ async function requestSignatureFromWallet(xumm, digestU8, account) {
                 }
             })
             .catch((error) => {
-                throw new Error(`Erro ao processar assinatura: ${error.message}`);
+                throw new Error(`Error processing signature: ${error.message}`);
             });
     } catch (error) {
-        throw new Error(`Erro ao criar payload de assinatura: ${error.message}`);
+        throw new Error(`Error creating signature payload: ${error.message}`);
     }
 }
 
-/* ---------- Component (focus exclusivo em Xaman Wallet) ---------- */
-
 export default function WalletSignPage() {
-    const { xumm, account } = useContext(AppContext) || {}; // expecting { xumm } shape in AppContext
     const [pdfFile, setPdfFile] = useState(null);
-    const [walletAddress, setWalletAddress] = useState("");
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState(null);
+
+    const { account, isLoading, xumm } = useContext(AppContext);
+
+    const { push } = useRouter();
+
+    useEffect(() => {
+        if (!isLoading && !account) {
+            push("/login");
+        }
+    }, [account, isLoading]);
 
     const handleDropzoneFile = useCallback(async (file) => {
         if (!file) {
@@ -248,14 +252,20 @@ export default function WalletSignPage() {
             return;
         }
         if (file.type !== "application/pdf") {
-            alert("Por favor selecione um arquivo PDF.");
+            alert("Please select a valid PDF file.");
             return;
         }
         setPdfFile(file);
         setMessage(null);
     }, []);
 
-    // Função auxiliar para calcular o hash ignorando o campo de assinatura (/Contents)
+    /**
+     * Auxiliar function to calculate hash excluding the signature field (/Contents)
+     * @param {Uint8Array} pdfU8 - The PDF document as a Uint8Array
+     * @param {number} contentsHexStart - Start position of the /Contents hex string
+     * @param {number} contentsHexEnd - End position of the /Contents hex string
+     * @returns {Promise<Uint8Array>} - The SHA-256 hash of the PDF document excluding the signature field
+     */
     const calcDigestExcluindoAssinatura = (pdfU8, contentsHexStart, contentsHexEnd) => {
         const posOfOpeningBracket = contentsHexStart - 1;
         const posOfClosingBracket = contentsHexEnd;
@@ -271,14 +281,17 @@ export default function WalletSignPage() {
         return crypto.subtle.digest("SHA-256", concat);
     };
 
+    /**
+     * Handle the signing process with the wallet
+     */
     const handleSignWithWallet = async () => {
         setMessage(null);
         if (!pdfFile) {
-            alert("Selecione um PDF pelo dropzone.");
+            alert("Please select a valid PDF file.");
             return;
         }
         if (!xumm) {
-            alert("Xumm (Xaman Wallet) não disponível no contexto.");
+            alert("Xumm (Xaman Wallet) not available in context.");
             return;
         }
 
@@ -331,7 +344,7 @@ export default function WalletSignPage() {
                 numWidth,
                 normalizedSignatureHex
             );
-            
+
             const blob = new Blob([finalPdfU8], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -344,16 +357,18 @@ export default function WalletSignPage() {
 
             setMessage({
                 status: "ok",
-                text: `PDF assinado via Xaman Wallet. SHA256 do arquivo (ignorando assinatura): ${hashHex}`,
+                text: `PDF signed via Xaman Wallet. SHA256 of the file (excluding signature): ${hashHex}`,
             });
         } catch (err) {
-            console.error("Erro ao assinar com wallet:", err);
+            console.error("Error signing with wallet:", err);
             setMessage({ status: "error", text: err.message || String(err) });
-            alert("Erro: " + (err.message || String(err)));
+            alert("Error: " + (err.message || String(err)));
         } finally {
             setBusy(false);
         }
     };
+
+    if (isLoading) return <PageLoading />;
 
     return (
         <div className="max-w-4xl mx-auto p-6">
@@ -394,7 +409,6 @@ export default function WalletSignPage() {
                         className="btn btn-ghost"
                         onClick={() => {
                             setPdfFile(null);
-                            setWalletAddress("");
                             setMessage(null);
                         }}
                     >

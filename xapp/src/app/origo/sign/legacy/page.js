@@ -1,7 +1,9 @@
 "use client";
 
+import PageLoading from "@/components/PageLoader";
 import Dropzone from "@/components/UI/Dropzone";
 import { AppContext } from "@/context/AppContext";
+import { useRouter } from "next/navigation";
 import * as forge from "node-forge";
 import {
     PDFDocument,
@@ -11,7 +13,7 @@ import {
     rgb
 } from "pdf-lib";
 import QRCode from "qrcode";
-import { useCallback, useContext, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 
 const bufferToHex = (buffer) =>
     Array.prototype.map
@@ -297,7 +299,16 @@ export default function Page() {
     const [passphrase, setPassphrase] = useState("");
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState(null);
-    const { account } = useContext(AppContext);
+
+    const { account, isLoading } = useContext(AppContext);
+
+    const { push } = useRouter();
+
+    useEffect(() => {
+        if (!isLoading && !account) {
+            push("/login");
+        }
+    }, [account, isLoading]);
 
     const handleDropzoneFile = useCallback(async (file) => {
         if (!file) {
@@ -396,6 +407,8 @@ export default function Page() {
             setBusy(false);
         }
     };
+
+    if (isLoading) return <PageLoading />;
 
     return (
         <div className="max-w-4xl mx-auto p-6">
