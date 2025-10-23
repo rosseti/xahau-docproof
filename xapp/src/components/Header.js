@@ -52,6 +52,15 @@ const Header = () => {
                 Send Document
               </Link>
             </li>
+
+            <li>
+              <Link
+                className={isActive("/origo") ? "active" : ""}
+                href="/origo"
+              >
+                Meet Origo
+              </Link>
+            </li>
           </ul>)}
         </div>
 
@@ -80,6 +89,14 @@ const Header = () => {
               href="/doc/create"
             >
               Send Document
+            </Link>
+          </li>
+          <li>
+            <Link
+              className={isActive("/origo") ? "active" : ""}
+              href="/origo"
+            >
+              Meet Origo
             </Link>
           </li>
         </ul>)}
