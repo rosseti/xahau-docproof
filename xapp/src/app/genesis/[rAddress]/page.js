@@ -266,10 +266,9 @@ const PDFCertificateExtractor = () => {
 
   return (
     <div className="container mx-auto pt-5 px-4">
-      <h1 className="text-4xl font-bold pb-4">XAuth</h1>
+      <h1 className="text-4xl font-bold pb-4">Genesis</h1>
       {id && <p className="mb-4">ID: {id}</p>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Dropzone */}
         <div className="p-4 border rounded-lg bg-gray-50 shadow-md">
           <h3 className="text-lg font-medium pb-2">
             Select or drag and drop your document below

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-import express from "express";
+import express, { Request, Response } from "express";
 import fs from "fs";
 import morgan from "morgan";
 import path from "path";
@@ -28,9 +28,30 @@ import { EmailService } from "@/modules/email/services/EmailService";
 import { router } from "@/shared/infra/http/routes";
 const pdf = require("html-pdf");
 
+const signer = require("node-signpdf").default;
+
+import multer from "multer";
+
+const fileFilter = (req: any, file: any, cb: any) => {
+  const allowedTypes = ['application/pdf', 'application/x-pdf', 'application/octet-stream', 'application/x-pkcs12'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Apenas arquivos PDF são permitidos!'), false);
+  }
+};
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter,
+}); // Limite de 50MB
+
 import { readFile } from "fs/promises";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
 import { Xumm } from "xumm";
+import { plainAddPlaceholder } from "node-signpdf";
+import QRCode from "qrcode";
 
 app.use("/api", router);
 
@@ -79,31 +100,6 @@ async function mergeProofAndOriginal(
     console.error("Error merging PDFs:", error);
     throw new Error("Failed to merge PDFs");
   }
-}
-
-async function addWatermark(
-  pdfBuffer: Buffer,
-  watermarkPath: string
-): Promise<Buffer> {
-  const pdfDoc = await PDFDocument.load(pdfBuffer);
-  const watermarkImageBytes = await readFile(watermarkPath);
-  const watermarkImage = await pdfDoc.embedPng(watermarkImageBytes);
-
-  const { width, height } = watermarkImage;
-  const scale = 0.5;
-
-  pdfDoc.getPages().forEach((page) => {
-    const { width: pageWidth, height: pageHeight } = page.getSize();
-    page.drawImage(watermarkImage, {
-      x: pageWidth / 2 - (width * scale) / 2,
-      y: pageHeight / 2 - (height * scale) / 2,
-      width: width * scale,
-      height: height * scale,
-      opacity: 0.2,
-    });
-  });
-
-  return Buffer.from(await pdfDoc.save());
 }
 
 app.get("/api/proof/:docId", async (req: any, res: any) => {
@@ -180,9 +176,9 @@ app.get("/api/proof/:docId", async (req: any, res: any) => {
       __dirname,
       "/../../assets/app-logo-horizontal-dark.png"
     );
-    console.log(watermarkPath);
+    
     if (fs.existsSync(watermarkPath)) {
-      pdfBuffer = await addWatermark(pdfBuffer, watermarkPath);
+      pdfBuffer = await DocumentService.addWatermark(pdfBuffer, watermarkPath);
     }
 
     res.setHeader("Content-Type", "application/pdf");
