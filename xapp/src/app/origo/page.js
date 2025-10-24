@@ -121,7 +121,6 @@ export default function Origo() {
     <div className="min-h-screen text-slate-100 relative bg-gradient-to-br from-[#1a237e] via-[#512da8] to-[#040612]">
       
       <div className="absolute inset-0 -z-10">
-        <img src="/images/hero-docs-verified.png" alt="Verified Document" className="absolute left-1/2 top-0 -translate-x-1/2 mt-8 rounded-xl shadow-2xl opacity-80" style={{maxWidth: 400}} />
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a237e88] via-[#512da888] to-[#040612ee]" />
         <div className="star-layer slow" style={{ backgroundImage: "radial-gradient(#ffffff22 1px, transparent 1px)", backgroundSize: "120px 120px" }} />
         <div className="star-layer faster" style={{ backgroundImage: "radial-gradient(#ffffff33 1px, transparent 1px)", backgroundSize: "80px 80px" }} />
@@ -150,7 +149,7 @@ export default function Origo() {
           </p>
 
           <div className="flex justify-center gap-4">
-            <Link href="#get-started" className="btn btn-lg btn-primary shadow-lg">
+            <Link href="/origo/sign" className="btn btn-lg btn-primary shadow-lg">
               Get Started Free
             </Link>
             <Link href="#how" className="btn btn-lg btn-ghost border text-white">
