@@ -7,9 +7,6 @@ import { useRouter } from "next/navigation";
 import * as forge from "node-forge";
 import {
     PDFDocument,
-    PDFName,
-    PDFNumber,
-    PDFString,
     rgb
 } from "pdf-lib";
 import QRCode from "qrcode";
@@ -35,7 +32,13 @@ const latin1ToU8 = (str) => {
 };
 const uint8ToBinaryString = (u8) => u8ToLatin1(u8);
 
-/* ---------- PKCS#7 creation (mesmo de antes) ---------- */
+/**
+ * Creates a PKCS#7 detached signature from the SHA-256 digest of the provided data.
+ * @param {Uint8Array} pdfBytesForDigestU8 - Data to be signed.
+ * @param {ArrayBuffer} pfxArrayBuffer - PFX certificate as ArrayBuffer.
+ * @param {string} passphrase - Passphrase for the PFX.
+ * @returns {Uint8Array} - PKCS#7 detached signature bytes.
+ */
 async function createPkcs7DetachedFromDigest(pdfBytesForDigestU8, pfxArrayBuffer, passphrase) {
     const hashBuf = await crypto.subtle.digest("SHA-256", pdfBytesForDigestU8);
     const hashU8 = new Uint8Array(hashBuf);
@@ -79,92 +82,15 @@ async function createPkcs7DetachedFromDigest(pdfBytesForDigestU8, pfxArrayBuffer
     return sigU8;
 }
 
-/* ---------- Insere AcroForm signature field (visível) ---------- */
 
-function insertAcroFormSignaturePlaceholder(pdfDoc, reason = "Signed by Docproof") {
-    try {
-        const pages = pdfDoc.getPages();
-        if (pages.length === 0) return false;
-        const page = pages[pages.length - 1];
-        const pageRef = page.ref;
-        const { context } = pdfDoc;
-
-        // dicionário /Sig simples (sem Contents grande; apenas para presença do field)
-        const sigDict = context.obj({
-            Type: PDFName.of("Sig"),
-            Filter: PDFName.of("Adobe.PPKLite"),
-            SubFilter: PDFName.of("adbe.pkcs7.detached"),
-            Reason: PDFString.of(reason),
-            M: PDFString.of(new Date().toISOString()),
-        });
-        const sigRef = context.register(sigDict);
-
-        // widget annotation (visível). Ajuste o Rect conforme desejar.
-        const rect = [50, 650, 210, 700]; // [x1, y1, x2, y2]
-        const widgetDict = context.obj({
-            Type: PDFName.of("Annot"),
-            Subtype: PDFName.of("Widget"),
-            FT: PDFName.of("Sig"),
-            Rect: context.obj(rect.map((n) => PDFNumber.of(n))),
-            V: sigRef,
-            T: PDFString.of("DocproofSignature"),
-            F: PDFNumber.of(4),
-            P: pageRef,
-        });
-        const widgetRef = context.register(widgetDict);
-
-        // Adiciona widget ao array /Annots da página
-        const annotsKey = PDFName.of("Annots");
-        const existingAnnots = page.node.get(annotsKey);
-        if (existingAnnots) {
-            try {
-                existingAnnots.push(widgetRef);
-            } catch (e) {
-                const newArr = context.obj([existingAnnots, widgetRef]);
-                page.node.set(annotsKey, newArr);
-            }
-        } else {
-            const arr = context.obj([widgetRef]);
-            page.node.set(annotsKey, arr);
-        }
-
-        // Cria/Atualiza AcroForm no catálogo
-        const catalog = pdfDoc.catalog;
-        const acroFormKey = PDFName.of("AcroForm");
-        const existingAcro = catalog.get(acroFormKey);
-        if (existingAcro) {
-            const fieldsKey = PDFName.of("Fields");
-            const fields = existingAcro.get(fieldsKey);
-            if (fields) {
-                try {
-                    fields.push(widgetRef);
-                } catch (e) {
-                    const newFields = context.obj([fields, widgetRef]);
-                    existingAcro.set(fieldsKey, newFields);
-                }
-            } else {
-                existingAcro.set(fieldsKey, context.obj([widgetRef]));
-            }
-            existingAcro.set(PDFName.of("SigFlags"), PDFNumber.of(3));
-        } else {
-            const acroFormDict = context.obj({
-                Fields: context.obj([widgetRef]),
-                SigFlags: PDFNumber.of(3),
-            });
-            const acroRef = context.register(acroFormDict);
-            catalog.set(acroFormKey, acroRef);
-        }
-
-        return true;
-    } catch (err) {
-        console.error("Erro inserindo AcroForm signature placeholder (detalhes):", err);
-        return false;
-    }
-}
-
-/* ---------- Funções de fallback textual (append) - seguras para injeção ---------- */
-
-// adiciona um bloco placeholder textual ao final do PDF contendo /ByteRange e /Contents
+/**
+ * Appends a signature placeholder block to the end of the PDF.
+ * Returns the new PDF Uint8Array and positions for ByteRange and Contents.
+ * @param {Uint8Array} pdfU8 - Original PDF bytes.
+ * @param {number} placeholderSizeBytes - Size of the signature placeholder in bytes.
+ * @param {string} reason - Reason for signing.
+ * @returns {Object} - { newPdfU8, contentsHexStart, contentsHexEnd, byteRangePos, numWidth, hexPlaceholderLen }
+ */
 function appendSignaturePlaceholder(pdfU8, placeholderSizeBytes = 8192, reason = "Document signed") {
     const pdfStr = u8ToLatin1(pdfU8);
     const numWidth = 10;
@@ -196,37 +122,16 @@ function appendSignaturePlaceholder(pdfU8, placeholderSizeBytes = 8192, reason =
     };
 }
 
-function findSignaturePlaceholderPositions(pdfU8) {
-    const pdfStr = u8ToLatin1(pdfU8);
-    const brIdx = pdfStr.indexOf("/ByteRange [");
-    if (brIdx === -1) throw new Error("Não encontrou /ByteRange no PDF salvo.");
-    const brEnd = pdfStr.indexOf("]", brIdx);
-    if (brEnd === -1) throw new Error("ByteRange ']' não encontrado.");
-    const contentsIdx = pdfStr.indexOf("/Contents", brIdx);
-    if (contentsIdx === -1) throw new Error("/Contents não encontrado após /ByteRange.");
-    const angleOpen = pdfStr.indexOf("<", contentsIdx);
-    if (angleOpen === -1) throw new Error("'<'' do /Contents não encontrado.");
-    const angleClose = pdfStr.indexOf(">", angleOpen);
-    if (angleClose === -1) throw new Error("'>' do /Contents não encontrado.");
-    const contentsHexStart = angleOpen + 1;
-    const contentsHexEnd = angleClose;
-    const brSegment = pdfStr.substring(brIdx, brEnd + 1);
-    let numWidth = 10;
-    const numbers = brSegment.match(/\[([^\]]+)\]/);
-    if (numbers && numbers[1]) {
-        const parts = numbers[1].trim().split(/\s+/);
-        if (parts.length >= 4) {
-            numWidth = parts[0].length;
-        }
-    }
-    return {
-        byteRangePos: brIdx,
-        contentsHexStart,
-        contentsHexEnd,
-        numWidth,
-    };
-}
-
+/**
+ * Injects the actual ByteRange and signature into the PDF.
+ * @param {Uint8Array} pdfU8 - PDF bytes with placeholder.
+ * @param {number} byteRangePos - Position of ByteRange in the PDF string.
+ * @param {number} contentsHexStart - Start position of Contents hex in the PDF string.
+ * @param {number} contentsHexEnd - End position of Contents hex in the PDF string.
+ * @param {number} numWidth - Width of the numbers in ByteRange.
+ * @param {string} signatureHex - Hexadecimal string of the signature to inject.
+ * @returns {Uint8Array} - Updated PDF bytes with injected ByteRange and signature.
+ */
 function injectByteRangeAndSignature(pdfU8, byteRangePos, contentsHexStart, contentsHexEnd, numWidth, signatureHex) {
     let pdfStr = u8ToLatin1(pdfU8);
 
@@ -274,6 +179,15 @@ function injectByteRangeAndSignature(pdfU8, byteRangePos, contentsHexStart, cont
     return latin1ToU8(pdfStr);
 }
 
+/**
+ * Signs the PDF using byte range method.
+ * @param {Uint8Array} pdfU8 - PDF bytes to sign.
+ * @param {number} contentsHexStart - Start position of Contents hex in the PDF string.
+ * @param {number} contentsHexEnd - End position of Contents hex in the PDF string.
+ * @param {ArrayBuffer} pfxArrayBuffer - PFX certificate as ArrayBuffer.
+ * @param {string} passphrase - Passphrase for the PFX.
+ * @returns {Uint8Array} - Signature bytes.
+ */
 async function signPdfWithByteRange(pdfU8, contentsHexStart, contentsHexEnd, pfxArrayBuffer, passphrase) {
     const posOfOpeningBracket = contentsHexStart - 1;
     const posOfClosingBracket = contentsHexEnd;
@@ -293,6 +207,10 @@ async function signPdfWithByteRange(pdfU8, contentsHexStart, contentsHexEnd, pfx
     return signatureU8;
 }
 
+/**
+ * Main Page Component for Standalone Signing
+ * @return {JSX.Element}
+ */
 export default function Page() {
     const [pdfFile, setPdfFile] = useState(null);
     const [pfxFile, setPfxFile] = useState(null);
@@ -347,20 +265,31 @@ export default function Page() {
             const pdfDoc = await PDFDocument.load(pdfBytes);
 
             const origin = process.env.NEXT_PUBLIC_APP_URL;
-            const fullValidationUrl = `${origin}/origo/${encodeURIComponent(account)}`;
+            const fullValidationUrl = `${origin}origo/${encodeURIComponent(account)}`;
             const qrDataUrl = await QRCode.toDataURL(fullValidationUrl, { margin: 1, scale: 6 });
 
+            const logoUrl = `${origin}app-logo-horizontal-dark.png`;
+            const logoResp = await fetch(logoUrl);
+            const logoBuf = await logoResp.arrayBuffer();
+            const logoPng = await pdfDoc.embedPng(logoBuf);
+            const logoWidth = 200;
+            const logoHeight = 69;
+
             const qrPage = pdfDoc.addPage([595, 842]);
-            const pngImage = await pdfDoc.embedPng(qrDataUrl);
-            const qrWidth = 160;
-            const qrHeight = 160;
-            qrPage.drawImage(pngImage, { x: 50, y: 650, width: qrWidth, height: qrHeight });
+
+            qrPage.drawImage(logoPng, { x: 50, y: 700, width: logoWidth, height: logoHeight });
             qrPage.drawText("Xahau Docproof Origo", { x: 50, y: 620, size: 20, color: rgb(0, 0.2, 0.6) });
             qrPage.drawText("Scan the QR code to validate this document on the Xahau Docproof.", { x: 50, y: 590, size: 12 });
             qrPage.drawText(`Validation URL: ${fullValidationUrl}`, { x: 50, y: 572, size: 10 });
             const now = new Date();
             qrPage.drawText(`Signed at: ${now.toISOString()}`, { x: 50, y: 540, size: 10 });
             if (account) qrPage.drawText(`Xahau wallet: ${account}`, { x: 50, y: 520, size: 10 });
+
+            const qrPngImage = await pdfDoc.embedPng(qrDataUrl);
+            const qrWidth = 120;
+            const qrHeight = 120;
+            qrPage.drawImage(qrPngImage, { x: 50, y: 80, width: qrWidth, height: qrHeight });
+            qrPage.drawText("Scan to verify", { x: 50, y: 70, size: 10, color: rgb(0, 0.2, 0.6) });
 
             const pdfWithFieldBytes = await pdfDoc.save({ useObjectStreams: false });
             const pdfWithFieldU8 = new Uint8Array(pdfWithFieldBytes);
@@ -412,7 +341,7 @@ export default function Page() {
 
     return (
         <div className="max-w-4xl mx-auto p-6">
-            <h1 className="text-3xl font-bold mb-3">Origo &ndash; Sign PDF (Legacy)</h1>
+            <h1 className="text-3xl font-bold mb-3">Origo &ndash; Sign PDF (Standalone)</h1>
             <p className="text-sm text-slate-600 mb-6">
                 Generate a PDF with a validation page (QR), insert a signature field (AcroForm) for readers to show the field,
                 and embed the PKCS#7 signature in an appended textual block (robust method for /ByteRange and /Contents injection).

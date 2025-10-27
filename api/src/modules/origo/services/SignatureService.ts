@@ -359,10 +359,10 @@ export class SignatureService {
     }
 
     /**
-     * Top-level verifier which will decide whether to verify as Xumm or Legacy.
+     * Top-level verifier which will decide whether to verify as Xumm or Standalone.
      * Strategy: validate base fields, then attempt to decode as Xumm.
      * If decode succeeds and contains SigningPubKey & TxnSignature -> Xumm path.
-     * Otherwise -> fallback to Legacy path.
+     * Otherwise -> fallback to Standalone path.
      */
     public async verifyPayload(payload: VerifyPayload): Promise<VerifyResult> {
         const baseValidation = this.ensureBaseFields(payload);
@@ -373,7 +373,7 @@ export class SignatureService {
         try {
             sigBuf = Buffer.from(sigHex, "hex");
         } catch (err: any) {
-            return this.verifyLegacyPayload(payload);
+            return this.verifyStandalonePayload(payload);
         }
 
         const { buf: trimmedBuf } = this.trimTrailingNulls(sigBuf);
@@ -382,10 +382,10 @@ export class SignatureService {
             if (decoded?.SigningPubKey && decoded?.TxnSignature) {
                 return this.verifyPayloadXumm(payload, decoded);
             } else {
-                return this.verifyLegacyPayload(payload);
+                return this.verifyStandalonePayload(payload);
             }
         } catch (_err) {
-            return this.verifyLegacyPayload(payload);
+            return this.verifyStandalonePayload(payload);
         }
     }
 
@@ -500,10 +500,10 @@ export class SignatureService {
     }
 
     /**
-     * Legacy verification (DOCPROOF public key comparison).
-     * This method mirrors your original verifyLegacyPayload but reuses helpers.
+     * Standalone verification (DOCPROOF public key comparison).
+     * This method mirrors your original verifyStandalonePayload but reuses helpers.
      */
-    public async verifyLegacyPayload(payload: VerifyPayload): Promise<VerifyResult> {
+    public async verifyStandalonePayload(payload: VerifyPayload): Promise<VerifyResult> {
         try {
             const { sha256, signature, rAddress, id } = payload;
 
@@ -548,7 +548,7 @@ export class SignatureService {
                 return { status: 200, body: { valid: false, reason: "Public keys do not match", details: cmp.details } };
             }
         } catch (err: any) {
-            console.error("SignatureService.verifyLegacyPayload error:", err);
+            console.error("SignatureService.verifyStandalonePayload error:", err);
             return { status: 500, body: { message: `Internal error: ${String(err?.message ?? err)}` } };
         }
     }

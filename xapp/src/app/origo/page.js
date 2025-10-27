@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useContext, useState } from "react";
-import Link from "next/link";
 import { AppContext } from "@/context/AppContext";
-import { Shield } from "lucide-react";
-import { Key } from "lucide-react";
-import { Search } from "lucide-react";
-import { SiTeamspeak } from "react-icons/si";
-import { UserSquare } from "lucide-react";
-import { UserCircle } from "lucide-react";
+import { Key, Search, Shield, UserCircle } from "lucide-react";
+import Link from "next/link";
+import { useContext, useState } from "react";
 
 const XAHAU_TOML_EXAMPLE = `[[DOCPROOF]]
 id = "429f076e-0b1c-412c-b1b0-c678cc6cb173" # UUIDv4 - https://www.uuidgenerator.net/version4
+# UUIDv4 unique identifier for this DOCPROOF entry.
+# Useful when an organization has multiple pubkeys for the same wallet,
+# enabling verifiers to distinguish between them without creating multiple wallets.
 address = "rNqe9wrMJM3D6hwcTtNmYTtfcjbHsHRDSg" # rAddress of the Xahau Account
 desc = "Xahau Docproof" # Account description
 pubkey = """
@@ -119,7 +117,7 @@ export default function Origo() {
 
   return (
     <div className="min-h-screen text-slate-100 relative bg-gradient-to-br from-[#1a237e] via-[#512da8] to-[#040612]">
-      
+
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a237e88] via-[#512da888] to-[#040612ee]" />
         <div className="star-layer slow" style={{ backgroundImage: "radial-gradient(#ffffff22 1px, transparent 1px)", backgroundSize: "120px 120px" }} />
@@ -137,15 +135,18 @@ export default function Origo() {
             Meet Origo
           </h1>
           <div className="text-2xl font-semibold text-indigo-100 mb-4 drop-shadow-sm">
-            The new standard for document trust
+            The new standard for digital proof
           </div>
 
           <p className="text-xl text-indigo-200 font-semibold mb-2">
-            Instantly verify, sign, and audit documents — no barriers, no lock-in.
+            Sign, verify, and audit.<br />All without intermediaries.
+            Real trust, cryptographically proven.
           </p>
 
           <p className="text-lg text-slate-200 mb-6">
-            Origo empowers you to prove authenticity and integrity for any document, from legacy certificates to blockchain wallets. Trust, verified in seconds.
+            From standalone certificates to blockchain wallets,
+            Origo bridges traditional compliance and decentralized identity —
+            making document authenticity verifiable in seconds.
           </p>
 
           <div className="flex justify-center gap-4">
@@ -156,10 +157,12 @@ export default function Origo() {
               See How It Works
             </Link>
           </div>
+
           <p className="mt-4 text-slate-400 text-sm">
-            Built for legal, web3, and modern teams.
+            Trusted by legal, web3, and enterprise teams.
           </p>
         </header>
+
 
         {/* FEATURES */}
         <section id="features" className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -189,25 +192,58 @@ export default function Origo() {
           <div className="md:col-span-2 p-6 bg-white/3 rounded-lg glass-card">
             <h3 className="text-xl font-semibold text-slate-100">How Origo Works</h3>
             <p className="mt-2 text-slate-300 text-lg">
-              <strong>Origo unlocks trust for every document.</strong> Sign with your legacy certificate or Xaman Wallet, verify instantly against decentralized domains, and get audit-ready results. No vendor lock-in. No barriers.
+              <strong className="mr-2">Origo turns every signature into a source of truth.</strong> 
+              Sign with your existing certificate or your Xaman Wallet — Origo verifies it instantly against decentralized domains, delivering verifiable, audit-ready trust.
+              No uploads. No lock-in. Just proof.
             </p>
 
             <ol className="mt-4 space-y-2 text-slate-300 list-decimal list-inside text-base">
               <li>
-                <strong>Sign your way:</strong> Use your existing digital certificate (PFX/PKCS#7) or sign directly with your Xaman Wallet using Xahau Docproof.
+                <strong className="mr-2">Sign your way:</strong> 
+                Use your traditional PFX/PKCS#7 certificate or sign natively with your Xaman Wallet through Xahau Docproof Origo. Both paths lead to verifiable authenticity.
               </li>
               <li>
-                <strong>Decentralized lookup:</strong> Origo fetches your domain and public keys from the XRPL ledger (<code>/.well-known/xahau.toml</code>), ensuring authenticity.
+                <strong className="mr-2">Decentralized lookup:</strong>
+                Origo retrieves domain-linked identities and public keys directly from the XRPL ledger
+                (<code>/.well-known/xahau.toml</code>) — removing intermediaries and ensuring genuine trust.
               </li>
               <li>
-                <strong>Seamless verification:</strong> Origo extracts and matches your public key against trusted DOCPROOF entries. Instant “VALID” verdict or actionable diagnostics.
+                <strong className="mr-2">Instant verification:</strong>
+                Origo extracts the signature data, matches the public key, and returns a tamper-proof verdict:
+                <strong className="text-green-400">VALID</strong> or diagnostic insights in seconds.
               </li>
             </ol>
 
             <p className="mt-4 text-slate-400 text-sm">
-              <strong>Legacy or future-proof:</strong> Origo empowers legal teams, DAOs, and innovators to prove document origin and integrity with confidence.<br/>
-              <span className="block mt-2">Full cryptographic verification of PDF byte-range signed attributes is supported when PKCS#7 extraction is available and the PDF byte-range digest is provided.</span>
+              <strong className="mr-2">Standalone or Wallet-based:</strong>
+              Origo proves both origin and integrity of your documents — entirely cryptographically.
+              <span className="block mt-2">
+                Supports full PDF byte-range validation using PKCS#7 signature and digest data.
+              </span>
             </p>
+          </div>
+        </section>
+
+        <section id="testimonial" className="mt-20 max-w-4xl mx-auto text-center">
+          <div className="bg-gradient-to-br from-[#2a2f4a]/40 to-[#1b1e2f]/50 rounded-3xl p-10 backdrop-blur-md border border-white/10 shadow-lg">
+            <svg className="mx-auto mb-4 w-10 h-10 text-indigo-400" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M7.17 6A5.001 5.001 0 0 0 2 11v4a1 1 0 0 0 1 1h4a5.001 5.001 0 0 0 5-5V7a1 1 0 0 0-1-1H7.17zm10 0A5.001 5.001 0 0 0 12 11v4a1 1 0 0 0 1 1h4a5.001 5.001 0 0 0 5-5V7a1 1 0 0 0-1-1h-4.83z" />
+            </svg>
+
+            <p className="text-lg text-gray-300 italic leading-relaxed mb-6">
+              “The work I am doing is my way of giving back to the accounting community.
+              Small businesses can now operate and make payments with confidence.
+              <strong>Xaman Wallet</strong>, <strong>FrontAccounting</strong>, and <strong>Origo</strong> make this possible.”
+            </p>
+
+            <div>
+              <p className="text-white font-semibold text-sm">
+                <a href="https://www.linkedin.com/in/leslie-proud-75abb788/" target="_blank">
+                  Leslie Proud
+                </a>
+              </p>
+              <p className="text-gray-400 text-xs">AuditsLtd — <a href="https://iaudits.com.au" target="_blank">iaudits.com.au</a></p>
+            </div>
           </div>
         </section>
 
@@ -219,29 +255,43 @@ export default function Origo() {
               <span className="text-lg font-bold text-slate-100 tracking-wide">Who is Origo for?</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mt-2">
+
               <div className="flex flex-col items-center bg-white/10 rounded-lg p-4 shadow-sm h-full">
                 <span className="text-2xl">⚖️</span>
                 <span className="mt-2 font-semibold text-slate-100">Legal & Compliance</span>
-                <span className="text-xs text-slate-300 mt-1 text-center">Reliable signature validation for contracts, policies, and sensitive docs.</span>
+                <span className="text-xs text-slate-300 mt-1 text-center">
+                  Protect every agreement with verifiable cryptographic signatures — compliant, tamper-proof, and fully auditable.
+                </span>
               </div>
+
               <div className="flex flex-col items-center bg-white/10 rounded-lg p-4 shadow-sm h-full">
                 <span className="text-2xl">📄</span>
                 <span className="mt-2 font-semibold text-slate-100">Workflows & Audits</span>
-                <span className="text-xs text-slate-300 mt-1 text-center">Automate document flows, ensure authenticity, and keep audit trails.</span>
+                <span className="text-xs text-slate-300 mt-1 text-center">
+                  Automate document flows, validate authenticity instantly, and keep a provable audit trail across teams.
+                </span>
               </div>
+
               <div className="flex flex-col items-center bg-white/10 rounded-lg p-4 shadow-sm h-full">
                 <span className="text-2xl">🌐</span>
                 <span className="mt-2 font-semibold text-slate-100">Decentralized Orgs</span>
-                <span className="text-xs text-slate-300 mt-1 text-center">Empower DAOs and web3 teams with blockchain-based trust.</span>
+                <span className="text-xs text-slate-300 mt-1 text-center">
+                  Empower DAOs and Web3 projects to issue, sign, and verify documents using blockchain-based trust.
+                </span>
               </div>
+
               <div className="flex flex-col items-center bg-white/10 rounded-lg p-4 shadow-sm h-full">
                 <span className="text-2xl">🔗</span>
                 <span className="mt-2 font-semibold text-slate-100">Modern Teams</span>
-                <span className="text-xs text-slate-300 mt-1 text-center">Transition from legacy PFX signing to wallet-based digital signatures.</span>
+                <span className="text-xs text-slate-300 mt-1 text-center">
+                  Evolve from static PFX signatures to wallet-based signing — simpler, safer, and future-ready.
+                </span>
               </div>
+
             </div>
           </div>
         </section>
+
 
 
         {/* XAMAN WALLET / DOMAIN ASSOCIATE */}
@@ -362,8 +412,13 @@ export default function Origo() {
               </div>
 
               <div className="mt-4 text-slate-400 text-xs">
-                Important: For legacy model, make sure the <code>pubkey</code> contains the public key (PEM) you want verifiers to match. Origo will attempt to parse PEM and DER forms from the signature blob to compare public key bytes.
+                Important: For standalone model, make sure the <code>pubkey</code> contains the public key (PEM) you want verifiers to match. Origo will attempt to parse PEM and DER forms from the signature blob to compare public key bytes.
+
+                <div className="mt-2">
+                  <strong>About <code>id</code>:</strong> Each <code>[[DOCPROOF]]</code> entry has an <code>id</code> field (UUIDv4) that uniquely identifies it. This lets organizations use multiple public keys with a single wallet, making verification easier without managing multiple accounts.
+                </div>
               </div>
+
             </div>
           </div>
         </section>
@@ -372,20 +427,24 @@ export default function Origo() {
         <section id="get-started" className="mt-14">
           <div className="p-8 bg-gradient-to-br from-[#232946] to-[#16161a] rounded-xl shadow-2xl text-white border border-[#232946]/40">
             <div className="max-w-3xl mx-auto text-center">
-              <h3 className="text-3xl font-extrabold mb-2">Ready to unlock trusted documents?</h3>
-              <p className="mt-2 text-lg text-slate-200">Start verifying, signing, and auditing with Origo — the bridge between legacy and the decentralized future. No risk, no lock-in, just trust.</p>
+              <h3 className="text-3xl font-extrabold mb-2">Turn signatures into verifiable trust.</h3>
+              <p className="mt-2 text-lg text-slate-200">
+                Origo lets you prove where a document came from — and that it hasn’t changed.
+                Sign, verify, and audit with blockchain-grade assurance, whether you’re using a wallet or your own certificate.
+              </p>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="#xaman" className="btn btn-lg btn-primary shadow-lg">
-                  Start Now with Xaman Wallet
+                  Start with Xaman Wallet
                 </Link>
                 <Link href="#toml" className="btn btn-lg btn-outline border-white text-white hover:bg-white/10">
-                  How to publish your xahau.toml
+                  Publish your xahau.toml
                 </Link>
               </div>
             </div>
           </div>
         </section>
+
       </main>
     </div>
   );
