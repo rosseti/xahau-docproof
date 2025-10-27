@@ -307,18 +307,32 @@ export default function WalletSignPage() {
             pdfDoc.setModificationDate(new Date("2000-01-01T00:00:00Z"));
 
             const origin = process.env.NEXT_PUBLIC_APP_URL;
-            const fullValidationUrl = `${origin}/origo/${encodeURIComponent(account)}`;
+            const fullValidationUrl = `${origin}origo/${encodeURIComponent(account)}`;
             const qrDataUrl = await QRCode.toDataURL(fullValidationUrl, { margin: 1, scale: 6 });
 
+            const logoUrl = `${origin}app-logo-horizontal-dark.png`;
+
+            const logoResp = await fetch(logoUrl);
+            const logoBuf = await logoResp.arrayBuffer();
+            const logoPng = await pdfDoc.embedPng(logoBuf);
+            const logoWidth = 200;
+            const logoHeight = 69;
+
             const qrPage = pdfDoc.addPage([595, 842]);
-            const pngImage = await pdfDoc.embedPng(qrDataUrl);
-            const qrWidth = 160;
-            const qrHeight = 160;
-            qrPage.drawImage(pngImage, { x: 50, y: 650, width: qrWidth, height: qrHeight });
-            qrPage.drawText("Xahau Docproof Origo (Wallet Signed)", { x: 50, y: 620, size: 16, color: rgb(0, 0.2, 0.6) });
-            qrPage.drawText(`Validation URL: ${fullValidationUrl}`, { x: 50, y: 590, size: 10 });
+
+            qrPage.drawImage(logoPng, { x: 50, y: 700, width: logoWidth, height: logoHeight });
+            qrPage.drawText("Xahau Docproof Origo", { x: 50, y: 620, size: 20, color: rgb(0, 0.2, 0.6) });
+            qrPage.drawText("Scan the QR code to validate this document on the Xahau Docproof.", { x: 50, y: 590, size: 12 });
+            qrPage.drawText(`Validation URL: ${fullValidationUrl}`, { x: 50, y: 572, size: 10 });
             const now = new Date();
-            qrPage.drawText(`Signed at: ${now.toISOString()}`, { x: 50, y: 560, size: 10 });
+            qrPage.drawText(`Signed at: ${now.toISOString()}`, { x: 50, y: 540, size: 10 });
+            if (account) qrPage.drawText(`Xahau wallet: ${account}`, { x: 50, y: 520, size: 10 });
+
+            const qrPngImage = await pdfDoc.embedPng(qrDataUrl);
+            const qrWidth = 120;
+            const qrHeight = 120;
+            qrPage.drawImage(qrPngImage, { x: 50, y: 80, width: qrWidth, height: qrHeight });
+            qrPage.drawText("Scan to verify", { x: 50, y: 70, size: 10, color: rgb(0, 0.2, 0.6) });
 
             const pdfWithFieldBytes = await pdfDoc.save({ useObjectStreams: false });
             const pdfWithFieldU8 = new Uint8Array(pdfWithFieldBytes);
