@@ -412,14 +412,14 @@ export class SignatureService {
                     decoded = decode(trimmed.buf.toString("hex"));
                 }
             } catch (err) {
-                return { status: 400, body: { valid: false, reason: "Erro ao decodificar assinatura", details: String(err) } };
+                return { status: 400, body: { valid: false, reason: "Failed to decode signature", details: String(err) } };
             }
 
             const signingPubKey = decoded.SigningPubKey;
             const txnSignature = decoded.TxnSignature;
 
             if (!signingPubKey || !txnSignature) {
-                return { status: 400, body: { valid: false, reason: "Campos SigningPubKey ou TxnSignature ausentes" } };
+                return { status: 400, body: { valid: false, reason: "SigningPubKey or TxnSignature fields are missing" } };
             }
 
             const derivedAddress = deriveAddress(signingPubKey);
@@ -428,7 +428,7 @@ export class SignatureService {
                     status: 200,
                     body: {
                         valid: false,
-                        reason: "Assinatura não corresponde ao endereço informado",
+                        reason: "Derived address does not match rAddress",
                         details: { derivedAddress, expected: rAddress },
                     },
                 };

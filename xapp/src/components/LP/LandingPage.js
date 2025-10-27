@@ -13,6 +13,7 @@ import { Shield } from "lucide-react";
 import { FiSend } from "react-icons/fi";
 
 import Footer from "./Footer";
+import OrigoSection from "./OrigoSection";
 
 const LandingPage = () => {
   const router = useRouter();
@@ -223,6 +224,8 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
+
+        <OrigoSection />
 
         {/* CTA Section */}
         <section className="relative py-24 px-4 overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 text-white text-center">
