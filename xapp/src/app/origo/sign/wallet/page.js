@@ -266,7 +266,7 @@ export default function WalletSignPage() {
      * @param {number} contentsHexEnd - End position of the /Contents hex string
      * @returns {Promise<Uint8Array>} - The SHA-256 hash of the PDF document excluding the signature field
      */
-    const calcDigestExcluindoAssinatura = (pdfU8, contentsHexStart, contentsHexEnd) => {
+    const calcDigestExcludingSignature = (pdfU8, contentsHexStart, contentsHexEnd) => {
         const posOfOpeningBracket = contentsHexStart - 1;
         const posOfClosingBracket = contentsHexEnd;
         const offset1 = 0;
@@ -342,7 +342,7 @@ export default function WalletSignPage() {
             const pdfForSign = appended.newPdfU8;
             const { byteRangePos, contentsHexStart, contentsHexEnd, numWidth } = appended;
 
-            const hashBuf = await calcDigestExcluindoAssinatura(pdfForSign, contentsHexStart, contentsHexEnd);
+            const hashBuf = await calcDigestExcludingSignature(pdfForSign, contentsHexStart, contentsHexEnd);
             const hashU8 = new Uint8Array(hashBuf);
             const hashHex = bufferToHex(hashU8);
 
