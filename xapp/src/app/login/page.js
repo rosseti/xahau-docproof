@@ -8,9 +8,6 @@ import { useRouter } from "next/navigation";
 import { useContext, useEffect } from "react";
 import { toast } from "react-toastify";
 
-
-import { useSearchParams } from "next/navigation";
-
 const isSafeRedirect = (url) => {
   // Only allow relative paths, not protocol or domain
   try {
@@ -23,13 +20,14 @@ const isSafeRedirect = (url) => {
 
 const LoginPage = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { account, isLoading, error, setError } = useContext(AppContext);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+
     if (account) {
       toast.success("You are now logged in.");
-      const redirect = searchParams?.get('redirect');
       if (redirect && isSafeRedirect(redirect)) {
         router.push(redirect);
       } else {
@@ -41,7 +39,7 @@ const LoginPage = () => {
       toast.error(error);
       setError(null);
     }
-  }, [account, error, searchParams, router]);
+  }, [account, error, router]);
 
   if (isLoading) return <PageLoader />;
 
