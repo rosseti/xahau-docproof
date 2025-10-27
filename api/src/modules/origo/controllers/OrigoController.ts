@@ -12,8 +12,7 @@ export class OrigoController {
         sha256,
         signature,
         rAddress,
-        id,
-        useXamanWallet: true
+        id
       } as VerifyPayload);
 
       return res.status(result.status).json(result.body);
