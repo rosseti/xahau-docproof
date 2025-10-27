@@ -489,7 +489,7 @@ export class SignatureService {
                         derivedAddress,
                         sha256,
                         domain,
-                        domainInfo,
+                        domainInfo
                     },
                 },
             };
