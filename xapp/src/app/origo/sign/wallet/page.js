@@ -242,7 +242,7 @@ export default function WalletSignPage() {
 
     useEffect(() => {
         if (!isLoading && !account) {
-            push("/login");
+            push("/login?redirect=/origo/sign/wallet");
         }
     }, [account, isLoading]);
 

@@ -224,7 +224,7 @@ export default function Page() {
 
     useEffect(() => {
         if (!isLoading && !account) {
-            push("/login");
+            push("/login?redirect=/origo/sign/standalone");
         }
     }, [account, isLoading]);
 

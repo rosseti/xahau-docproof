@@ -13,7 +13,7 @@ export default function PageSignOptions() {
 
     useEffect(() => {
         if (!isLoading && !account) {
-            push("/login");
+            push("/login?redirect=/origo/sign");
         }
     }, [account, isLoading]);
 
