@@ -1,5 +1,6 @@
 import React from "react";
 import { Twitter, Youtube } from "lucide-react";
+import { Instagram } from "lucide-react";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -43,6 +44,16 @@ const Footer = () => {
                 <Youtube className="mr-2" size={20} /> Youtube
               </a>
             </li>
+            <li>
+              <a
+                href="https://instagram.com/XahauDocproof"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center text-gray-300 hover:text-white"
+              >
+                <Instagram className="mr-2" size={20} /> Instagram
+              </a>
+            </li>
           </ul>
         </div>
         <div>
@@ -76,6 +87,16 @@ const Footer = () => {
                 className="text-gray-300 hover:text-white"
               >
                 Documentation
+              </a>
+            </li>
+            <li>
+              <a
+                href="/origo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-300 hover:text-white"
+              >
+                Meet Origo
               </a>
             </li>
           </ul>

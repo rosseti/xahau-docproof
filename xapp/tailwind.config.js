@@ -43,23 +43,5 @@ module.exports = {
       },
     },
   },
-  plugins: [require('daisyui')],
-  daisyui: {
-    themes: [
-      {
-        origo: {
-          primary: "#06b6d4",
-          "primary-focus": "#0891b2",
-          secondary: "#4f46e5",
-          accent: "#10b981",
-          neutral: "#111827",
-          "base-100": "#ffffff",
-          info: "#0ea5e9",
-          success: "#10b981",
-          warning: "#f59e0b",
-          error: "#ef4444",
-        },
-      },
-    ],
-  },
+  plugins: [require('daisyui')]
 };
