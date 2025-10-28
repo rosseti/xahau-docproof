@@ -156,7 +156,7 @@ const Origo = () => {
 
             setVerifying(true);
 
-            const res = await fetch("/api/origo/verify-signature", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/origo/verify-signature`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
