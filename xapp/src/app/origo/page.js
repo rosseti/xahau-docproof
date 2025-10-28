@@ -150,7 +150,7 @@ export default function Origo() {
           </p>
 
           <div className="flex justify-center gap-4">
-            <Link href="/origo/sign" className="btn btn-lg btn-primary shadow-lg">
+            <Link href="/origo/sign" className="btn btn-lg btn-info shadow-lg">
               Get Started Free
             </Link>
             <Link href="#how" className="btn btn-lg btn-ghost border text-white">
@@ -434,7 +434,7 @@ export default function Origo() {
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="#xaman" className="btn btn-lg btn-primary shadow-lg">
+                <Link href="#xaman" className="btn btn-lg btn-info shadow-lg">
                   Start with Xaman Wallet
                 </Link>
                 <Link href="#toml" className="btn btn-lg btn-outline border-white text-white hover:bg-white/10">
