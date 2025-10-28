@@ -8,21 +8,38 @@ import { useRouter } from "next/navigation";
 import { useContext, useEffect } from "react";
 import { toast } from "react-toastify";
 
+const isSafeRedirect = (url) => {
+  // Only allow relative paths, not protocol or domain
+  try {
+    const u = new URL(url, 'http://dummy');
+    return u.origin === 'http://dummy' && url.startsWith('/');
+  } catch {
+    return false;
+  }
+};
+
 const LoginPage = () => {
   const router = useRouter();
   const { account, isLoading, error, setError } = useContext(AppContext);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+
     if (account) {
       toast.success("You are now logged in.");
-      router.push("/doc/list");
+      if (redirect && isSafeRedirect(redirect)) {
+        router.push(redirect);
+      } else {
+        router.push("/doc/list");
+      }
     }
 
     if (error) {
       toast.error(error);
       setError(null);
     }
-  }, [account, error]);
+  }, [account, error, router]);
 
   if (isLoading) return <PageLoader />;
 
