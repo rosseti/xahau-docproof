@@ -14,6 +14,12 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-node": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
     "@types/crypto-js": "^4.2.2",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.13",
@@ -21,15 +27,6 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^24.8.1",
     "@types/qrcode": "^1.5.5",
-    "jest": "^29.7.0",
-    "jest-environment-node": "^29.7.0",
-    "ts-jest": "^29.2.5",
-    "ts-node": "^10.9.2",
-    "tsc-alias": "^1.8.10",
-    "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.6.3"
-  },
-  "dependencies": {
     "@iarna/toml": "^2.2.5",
     "@types/elliptic": "^6.4.18",
     "@types/multer": "^1.4.12",
@@ -63,6 +60,9 @@
     "tiny-secp256k1": "^2.2.3",
     "xrpl": "^4.4.2",
     "xrpl-keypairs": "^1.0.3",
-    "xumm": "^1.7.7"
+    "xumm": "^1.7.7",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.10",
+    "tsconfig-paths": "^4.2.0"
   }
 }
