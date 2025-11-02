@@ -19,19 +19,21 @@ export class NotificationService {
     subtitle: string,
     body: string
   ): Promise<void> {
-    await this.xummService.push?.notification({
-      user_token: userToken,
-      subtitle,
-      body,
-    });
+    try {
+      await this.xummService.push?.notification({
+        user_token: userToken,
+        subtitle,
+        body,
+      });
+    } catch (error) {
+      console.error("Error sending push notification:", error);
+    }
   }
 
   async notifySignersForReview(document: IUserDocument): Promise<void> {
     const normalizedSigners = document.signers.map((signer) => {
       return { email: signer.email, signed: signer.signed };
     });
-
-    console.log(normalizedSigners);
 
     for (const signer of document.signers) {
       const signingLink = `${process.env.XAPP_URL}sign/${document.id}/${signer.id}`;

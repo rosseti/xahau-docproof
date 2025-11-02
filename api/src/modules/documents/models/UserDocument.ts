@@ -7,6 +7,8 @@ export interface ISigner extends Document {
   signedAt: Date;
   wallet: string;
   txHash: string;
+  method: string;
+  signature: string;
 }
 
 export interface IUserDocument extends Document {
@@ -31,6 +33,8 @@ const SignerSchema: Schema = new Schema({
   signedAt: { type: Date, required: false },
   wallet: { type: String, required: false },
   txHash: { type: String, required: false },
+  method: { type: String, required: false, default: 'onchain' },
+  signature: { type: String, required: false },
 });
 
 const UserDocumentSchema: Schema = new Schema({

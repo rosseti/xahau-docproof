@@ -201,4 +201,29 @@ export class DocumentController {
 
     return res.status(200).send(emailBody);
   }
+
+  static async registerOffchainSignature(
+    req: Request,
+    res: Response
+  ): Promise<any> {
+    const { documentId, signerId } = req.params;
+    const { txid, signature } = req.body;
+    try {
+      const document = await DocumentService.registerOffchainSignature(
+        documentId,
+        signerId,
+        signature,
+        txid
+      );
+
+      return res.status(200).json({
+        document,
+      });
+    } catch (error: any) {
+      console.error(error);
+      return res
+        .status(500)
+        .json({ message: `Error registering offchain signature: ${error.message || error}` });
+    }
+  }
 }

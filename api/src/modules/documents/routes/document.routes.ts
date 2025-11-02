@@ -32,4 +32,6 @@ docRoutes.put("/:documentId/save-notify-signers", authenticateJWT, DocumentContr
 docRoutes.post("/create", [authenticateJWT, upload.single("file")], DocumentController.createDocument);
 
 docRoutes.get("/:documentId/:signerId", DocumentController.getDocumentByIdAndSignerId);
+docRoutes.post("/:documentId/:signerId/sign/offchain", DocumentController.registerOffchainSignature);
+
 docRoutes.get("/:documentId", authenticateJWT, DocumentController.getDocumentById);

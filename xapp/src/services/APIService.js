@@ -74,10 +74,28 @@ const ApiService = (xumm) => {
     return response;
   }
 
+  async function registerOffchainSignature({ docId, signerId, signature, txid }) {
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/doc/${docId}/${signerId}/sign/offchain`,
+        {
+          signature,
+          txid
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error("Error registering off-chain signature: ", error);
+      throw error;
+    }
+  }
+
   return {
     getDocuments,
     getDocument,
     addAuthorizedSigners,
+    registerOffchainSignature,
     getDocumentByIdAndSignerId
   };
 };

@@ -17,6 +17,7 @@ import { PDFDocument } from "pdf-lib";
 import { NotificationService } from "./NotificationService";
 import { InternalServerErrorException } from "@/exceptions/InternalServerErrorException";
 import fs from "fs";
+import { SignatureService } from "./SignatureService";
 
 export class DocumentService {
   static async getDocuments(
@@ -324,5 +325,83 @@ export class DocumentService {
     });
 
     return Buffer.from(await pdfDoc.save({ useObjectStreams: false }));
+  };
+
+  static registerOffchainSignature = async (
+    documentId: string,
+    signerId: string,
+    signature: string,
+    txid?: string
+  ): Promise<IUserDocument | null> => {
+    if (!documentId) {
+      throw new BadRequestException("Document ID is required.");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(documentId)) {
+      throw new BadRequestException("Invalid document ID format.");
+    }
+
+
+    const document = await UserDocument.findOne({
+      _id: documentId,
+      signers: { $elemMatch: { _id: signerId } },
+    }).exec();
+
+    if (!document) {
+      throw new HttpException(404, "Document not found.");
+    }
+
+    // Check if signer already signed
+    const signer = document.signers.find((s) => s.id === signerId);
+    if (!signer) {
+      throw new BadRequestException("Signer not found in document.");
+    }
+    if (signer.signed) {
+      throw new BadRequestException("This signer has already signed the document.");
+    }
+
+    console.log('Verifying offchain signature...');
+
+    const verificationResult = await SignatureService.verifyOffchainSignature(signature);
+    if (!verificationResult.valid) {
+      throw new BadRequestException(`Invalid offchain signature: ${verificationResult.reason}`);
+    }
+
+    let hasSigned = false;
+    const notification = new NotificationService();
+
+    // Mark as signed and notify
+    signer.signed = true;
+    signer.signedAt = new Date();
+    signer.wallet = verificationResult.rAddress || "";
+    signer.method = 'offchain';
+    signer.signature = signature;
+    signer.txHash = txid || "";
+    hasSigned = true;
+    notification.notifyPushNotification(
+      document.userToken,
+      "Document Signed",
+      `Your document has been signed by ${signer.email} (offchain).`
+    );
+
+    const totalSigners = document.signers.length;
+    const totalSigned = document.signers.filter((s) => s.signed).length;
+
+    if (totalSigners === totalSigned) {
+      document.status = DocumentStatus.FullySigned;
+    } else if (totalSigners > totalSigned && hasSigned) {
+      document.status = DocumentStatus.PartiallySigned;
+    }
+
+    if (document.status === DocumentStatus.FullySigned) {
+      notification.notifyPushNotification(
+        document.userToken,
+        "Document Fully Signed",
+        `Your document is now fully signed.`
+      );
+    }
+
+    await document.save();
+    return document;
   };
 }
