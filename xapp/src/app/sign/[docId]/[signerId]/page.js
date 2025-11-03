@@ -145,14 +145,14 @@ export default function PageSign() {
         ],
       };
 
-      const message = `Please, sign this document hash:\n${document.hash}`;
+      const message = `Sign this document hash:\n${document.hash}`;
 
       const { created, resolved } = await xumm.payload.createAndSubscribe(
         {
           txjson,
           options: {
-            submit: false, // Apenas assinar, não submeter
-            expire: 5, // expira em 5 minutos
+            submit: false,
+            expire: 5,
           },
           custom_meta: {
             instruction: message,
@@ -169,12 +169,10 @@ export default function PageSign() {
           }
 
           if ("signed" in eventMessage.data) {
-            toast.info("Signed successfully!");
             return eventMessage;
           }
 
           if ("declined" in eventMessage.data) {
-            toast.warning("Signature canceled by user.");
             return eventMessage;
           }
         }

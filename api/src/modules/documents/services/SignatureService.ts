@@ -8,6 +8,7 @@ export interface OffchainVerifyResult {
     documentHash?: string;
     rAddress?: string;
     signingPubKey?: string;
+    txData?: any;
     reason?: string;
 }
 
@@ -18,12 +19,10 @@ export class SignatureService {
                 return { valid: false, reason: "Signature must be a valid hex string" };
             }
 
-            // Decode and trim trailing null bytes if present
             const sigBuf = Buffer.from(String(signatureHex), "hex");
             const trimmed = this.trimTrailingNulls(sigBuf);
             const hex = trimmed.buf.toString("hex");
 
-            // decode the serialized transaction (hex) into object
             const decoded: any = decode(hex);
 
             const signingPubKey: string | undefined = decoded.SigningPubKey;
@@ -33,25 +32,19 @@ export class SignatureService {
                 return { valid: false, reason: "Missing SigningPubKey or TxnSignature" };
             }
 
-            // Derive account address from public key (works for ed25519/secp256k1 formats supported by xrpl lib)
             const rAddress = deriveAddress(signingPubKey);
 
-            // Build the signing blob correctly using encodeForSigning
-            // encodeForSigning will produce the exact hex payload that was signed
             const signingBlobHex: string = encodeForSigning(decoded);
 
-            // Ensure signature and pubkey are normalized hex strings (no 0x prefix)
             const sigHex = txnSignature.startsWith("0x") ? txnSignature.slice(2) : txnSignature;
             const pubHex = signingPubKey.startsWith("0x") ? signingPubKey.slice(2) : signingPubKey;
 
-            // Verify signature: message = signingBlobHex, signature = sigHex, publicKey = pubHex
             const isValid = verify(signingBlobHex, sigHex, pubHex);
 
             if (!isValid) {
                 return { valid: false, reason: "Invalid signature for payload" };
             }
 
-            // Extract memo (document hash) if present
             let documentHash: string | undefined;
             if (decoded.Memos && Array.isArray(decoded.Memos) && decoded.Memos.length > 0) {
                 const memoDataHex = decoded.Memos[0].Memo?.MemoData;
@@ -65,6 +58,7 @@ export class SignatureService {
                 documentHash,
                 rAddress,
                 signingPubKey,
+                txData: decoded,
             };
         } catch (err: any) {
             console.error("verifyOffchainSignature error:", err);

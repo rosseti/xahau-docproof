@@ -351,7 +351,6 @@ export class DocumentService {
       throw new HttpException(404, "Document not found.");
     }
 
-    // Check if signer already signed
     const signer = document.signers.find((s) => s.id === signerId);
     if (!signer) {
       throw new BadRequestException("Signer not found in document.");
@@ -367,10 +366,13 @@ export class DocumentService {
       throw new BadRequestException(`Invalid offchain signature: ${verificationResult.reason}`);
     }
 
+    if (verificationResult.documentHash !== document.hash) {
+      throw new NotFoundException("Signature document hash does not match.");
+    }
+
     let hasSigned = false;
     const notification = new NotificationService();
 
-    // Mark as signed and notify
     signer.signed = true;
     signer.signedAt = new Date();
     signer.wallet = verificationResult.rAddress || "";
@@ -378,6 +380,7 @@ export class DocumentService {
     signer.signature = signature;
     signer.txHash = txid || "";
     hasSigned = true;
+    
     notification.notifyPushNotification(
       document.userToken,
       "Document Signed",

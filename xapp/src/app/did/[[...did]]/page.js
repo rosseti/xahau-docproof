@@ -98,7 +98,7 @@ export default function PageDid() {
 
             {/* <!-- Blockchain Tx --> */ }
             <div>
-              <h2 className="text-2xl font-bold my-4">Blockchain Tx:</h2>
+              <h2 className="text-2xl font-bold my-4">Tx:</h2>
 
               <pre className=" p-4 rounded-lg overflow-auto">
                 <JsonView value={didDetails.metadata.data} />

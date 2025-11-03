@@ -1,5 +1,4 @@
 const fetch = require("node-fetch");
-import crypto from "crypto";
 
 export default class DIDResolver {
   method: string = "docproof";
@@ -13,15 +12,14 @@ export default class DIDResolver {
 
   async resolveDID(did: string) {
     did = decodeURIComponent(did);
-    if (this.cache.has(did)) {
+    /* if (this.cache.has(did)) {
       const cached = this.cache.get(did);
       if (Date.now() - cached.timestamp < this.cacheTimeout) {
         return cached.data;
       }
       this.cache.delete(did);
-    }
+    } */
 
-    // Separar o DID da query
     const [didPart, queryPart] = did.split("?");
     const [prefix, method, txHash] = didPart.split(":");
 
@@ -29,7 +27,6 @@ export default class DIDResolver {
       throw new Error(`Invalid DID format: ${did}`);
     }
 
-    // Processar parâmetros da query
     const params = new URLSearchParams(queryPart);
     const networkName = params.get("network") || "xahau";
     const networkType = params.get("network_type") || "mainnet";
@@ -39,14 +36,14 @@ export default class DIDResolver {
     }
 
     try {
-      const txData = await this.fetchTransactionData(networkType, txHash);
+      //const txData = await this.fetchTransactionData(networkType, txHash);
 
       const resolution = {
         did,
         network: networkName,
         networkType,
         txHash,
-        metadata: txData,
+        //metadata: txData,
         timestamp: Date.now(),
       };
 
@@ -59,19 +56,6 @@ export default class DIDResolver {
     } catch (error: any) {
       throw new Error(`Failed to resolve DID: ${error.message}`);
     }
-  }
-
-  async validateFileHash(fileBuffer: string, expectedHash: string) {
-    const calculatedHash = crypto
-      .createHash("sha256")
-      .update(fileBuffer)
-      .digest("hex");
-
-    return {
-      matches: calculatedHash === expectedHash,
-      calculatedHash,
-      expectedHash,
-    };
   }
 
   validateHookParameters(hookParams: any) {
@@ -183,7 +167,7 @@ export default class DIDResolver {
         "https://www.w3.org/ns/did/v1",
         "https://w3id.org/security/suites/ed25519-2020/v1",
       ],
-      id: did.split("?")[0], // Remove query params
+      id: did.split("?")[0],
       verificationMethod: [
         {
           id: `${did.split("?")[0]}#key-1`,
