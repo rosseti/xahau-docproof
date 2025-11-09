@@ -6,6 +6,8 @@ import { Client, deriveAddress } from "xrpl";
 import { decode, encodeForSigning } from 'ripple-binary-codec';
 import { verify } from "ripple-keypairs";
 
+import { SignatureService as DocSignatureService } from "@/modules/documents/services/SignatureService";
+
 export type VerifyPayload = {
     sha256: string;
     signature?: string | null;
@@ -404,26 +406,15 @@ export class SignatureService {
                 return { status: 400, body: { message: "sha256 must be a 32-byte hex string" } };
             }
 
-            let decoded: any = decodedParam;
-            try {
-                if (!decoded) {
-                    const sigBuf = Buffer.from(String(signature), "hex");
-                    const trimmed = this.trimTrailingNulls(sigBuf);
-                    decoded = decode(trimmed.buf.toString("hex"));
-                }
-            } catch (err) {
-                return { status: 400, body: { valid: false, reason: "Failed to decode signature", details: String(err) } };
+            const verification = await DocSignatureService.verifyOffchainSignature(signature!);
+
+            if (!verification.valid) {
+                return { status: 400, body: { valid: false, reason: verification.reason || "Invalid signature" } };
             }
 
-            const signingPubKey = decoded.SigningPubKey;
-            const txnSignature = decoded.TxnSignature;
+            const { signingPubKey, rAddress: derivedAddress, txData } = verification;
 
-            if (!signingPubKey || !txnSignature) {
-                return { status: 400, body: { valid: false, reason: "SigningPubKey or TxnSignature fields are missing" } };
-            }
-
-            const derivedAddress = deriveAddress(signingPubKey);
-            if (derivedAddress !== rAddress) {
+            if (!derivedAddress || derivedAddress !== rAddress) {
                 return {
                     status: 200,
                     body: {
@@ -434,40 +425,25 @@ export class SignatureService {
                 };
             }
 
-            const txForSigning = { ...decoded };
+            const memoDataHex =
+                txData?.Memos && Array.isArray(txData.Memos) && txData.Memos[0]?.Memo?.MemoData
+                    ? txData.Memos[0].Memo.MemoData
+                    : undefined;
 
-            console.log('Sha256', sha256);
-            console.log('Memodata', txForSigning.Memos[0].Memo.MemoData);
-
-            txForSigning.Sequence = Number(decoded.Sequence);
-            if (decoded.LastLedgerSequence !== undefined) txForSigning.LastLedgerSequence = Number(decoded.LastLedgerSequence);
-            if (decoded.NetworkID !== undefined) txForSigning.NetworkID = Number(decoded.NetworkID);
-            txForSigning.Fee = String(decoded.Fee);
-
-            const blob = encodeForSigning(txForSigning);
-            const isValid: boolean = verify(blob, txnSignature, signingPubKey);
-
-            if (!isValid) {
-                return { status: 200, body: { valid: false, reason: "Invalid signature for the provided payload" } };
-            }
-
-            if (txForSigning.Memos && Array.isArray(txForSigning.Memos) && txForSigning.Memos.length > 0) {
-                const memoDataHex = txForSigning.Memos[0].Memo.MemoData;
-                if (sha256.toLowerCase() !== memoDataHex.toLowerCase()) {
-                    return {
-                        status: 200,
-                        body: {
-                            valid: false,
-                            reason: "SHA256 hash does not match MemoData in transaction",
-                            details: { expected: sha256, found: memoDataHex },
-                        },
-                    };
-                }
+            if (memoDataHex && sha256.toLowerCase() !== memoDataHex.toLowerCase()) {
+                return {
+                    status: 200,
+                    body: {
+                        valid: false,
+                        reason: "SHA256 hash does not match MemoData in transaction",
+                        details: { expected: sha256, found: memoDataHex },
+                    },
+                };
             }
 
             const domain = await this.getDomainFromLedger(rAddress).catch(() => undefined);
-
             let domainInfo = null;
+
             if (domain) {
                 const toml = await this.fetchToml(domain).catch(() => null);
                 if (toml) {
@@ -489,7 +465,7 @@ export class SignatureService {
                         derivedAddress,
                         sha256,
                         domain,
-                        domainInfo
+                        domainInfo,
                     },
                 },
             };

@@ -9,11 +9,21 @@ import { PDFDocument, rgb } from "pdf-lib";
 import QRCode from "qrcode";
 import { useCallback, useContext, useEffect, useState } from "react";
 
+/**
+ * Convert a buffer (ArrayBuffer or Uint8Array) to a hex string
+ * @param {ArrayBuffer | Uint8Array} buffer - The input buffer
+ * @returns {string} - The resulting hex string
+ */
 const bufferToHex = (buffer) =>
     Array.prototype.map
         .call(new Uint8Array(buffer), (x) => ("00" + x.toString(16)).slice(-2))
         .join("");
 
+/**
+ * Convert a Uint8Array to a Latin1 string
+ * @param {Uint8Array} u8 - The input Uint8Array
+ * @returns {string} - The resulting Latin1 string
+ */
 const u8ToLatin1 = (u8) => {
     const CHUNK = 0x8000;
     let res = "";
@@ -22,12 +32,25 @@ const u8ToLatin1 = (u8) => {
     }
     return res;
 };
+
+/**
+ * Convert a Latin1 string to Uint8Array
+ * @param {string} str - The Latin1 encoded string
+ * @returns {Uint8Array} - The resulting Uint8Array
+ */
 const latin1ToU8 = (str) => {
     const u8 = new Uint8Array(str.length);
     for (let i = 0; i < str.length; i++) u8[i] = str.charCodeAt(i);
     return u8;
 };
 
+/**
+ * Append a signature placeholder to a PDF Uint8Array
+ * @param {Uint8Array} pdfU8 - The original PDF as a Uint8Array
+ * @param {number} placeholderSizeBytes - Size in bytes of the signature placeholder
+ * @param {string} reason - Reason for signing to include in the signature block
+ * @returns {object} - Object containing the new PDF Uint8Array and positions for signature injection
+ */
 function appendSignaturePlaceholder(pdfU8, placeholderSizeBytes = 8192, reason = "Document signed") {
     const pdfStr = u8ToLatin1(pdfU8);
     const numWidth = 10;
@@ -59,8 +82,10 @@ function appendSignaturePlaceholder(pdfU8, placeholderSizeBytes = 8192, reason =
     };
 }
 
+/**
+ * Inject ByteRange and signature into the PDF Uint8Array
+ */
 function injectByteRangeAndSignature(pdfU8, byteRangePos, contentsHexStart, contentsHexEnd, numWidth, signatureHex) {
-    // Validações básicas
     if (!(pdfU8 instanceof Uint8Array)) throw new Error("pdfU8 deve ser Uint8Array");
     [byteRangePos, contentsHexStart, contentsHexEnd, numWidth].forEach((v) => {
         if (!Number.isInteger(v) || v < 0) throw new Error("Parâmetros de posição devem ser inteiros não-negativos");
@@ -68,25 +93,22 @@ function injectByteRangeAndSignature(pdfU8, byteRangePos, contentsHexStart, cont
     if (contentsHexStart >= contentsHexEnd) throw new Error("contentsHexStart deve ser < contentsHexEnd");
     if (contentsHexEnd > pdfU8.length) throw new Error("contentsHexEnd fora do arquivo");
 
-    // calculos de comprimento e offsets
-    const posOfOpeningBracket = contentsHexStart - 1; // posição do '<'
-    if (posOfOpeningBracket < 0) throw new Error("contentsHexStart inválido (sem '<' antes)");
-    const length1 = posOfOpeningBracket; // bytes antes do '<'
-    const posOfClosingBracket = contentsHexEnd; // posição do '>' (assumindo que não há espaços)
-    const offset2 = posOfClosingBracket + 1; // byte depois de '>'
-    if (offset2 > pdfU8.length) throw new Error("offset2 calculado além do final do arquivo");
+    const posOfOpeningBracket = contentsHexStart - 1;
+    if (posOfOpeningBracket < 0) throw new Error("contentsHexStart invalid (without '<' before)");
+    const length1 = posOfOpeningBracket;
+    const posOfClosingBracket = contentsHexEnd;
+    const offset2 = posOfClosingBracket + 1;
+    if (offset2 > pdfU8.length) throw new Error("offset2 calculated beyond the end of the file");
     const length2 = pdfU8.length - offset2;
 
-    // função para formatar números com zero-padding
     const pad = (v) => {
         const s = String(v);
-        if (s.length > numWidth) return s; // não truncar — o caller deve garantir numWidth suficiente
+        if (s.length > numWidth) return s;
         return s.padStart(numWidth, "0");
     };
 
-    // 1) Substituir os 4 números dentro do placeholder /ByteRange mantendo o mesmo comprimento total do segmento
     const brStart = byteRangePos;
-    // encontrar o final do segmento de ByteRange (o primeiro ']' depois de brStart)
+
     let brEnd = -1;
     for (let i = brStart; i < pdfU8.length; i++) {
         if (pdfU8[i] === 0x5d) { // ']' ASCII 0x5D
@@ -94,31 +116,26 @@ function injectByteRangeAndSignature(pdfU8, byteRangePos, contentsHexStart, cont
             break;
         }
     }
-    if (brEnd === -1) throw new Error("ByteRange ']' não encontrado quando injetando.");
+    if (brEnd === -1) throw new Error("ByteRange ']' not found when injecting.");
 
-    // extrair segmento como string latin1
     const oldSegmentStr = u8ToLatin1(pdfU8.subarray(brStart, brEnd + 1));
 
-    // procurar os 4 grupos numéricos dentro do segmento antigo e substituí-los por padded numbers
     const numbersRE = /(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/;
     const match = numbersRE.exec(oldSegmentStr);
     let newSegmentStr;
     if (match) {
-        // substitui apenas os números (preserva espaços e outros caracteres)
-        const padded1 = pad(0); // normalmente start1 será 0
+        const padded1 = pad(0);
         const padded2 = pad(length1);
         const padded3 = pad(offset2);
         const padded4 = pad(length2);
         newSegmentStr = oldSegmentStr.replace(numbersRE, `${padded1} ${padded2} ${padded3} ${padded4}`);
         if (newSegmentStr.length !== oldSegmentStr.length) {
-            // se o comprimento mudou (por algum motivo), falhar em vez de deslocar o arquivo
-            throw new Error("Substituição mudou o comprimento do placeholder ByteRange — ajuste numWidth ou placeholder.");
+            throw new Error("Changed replacement in ByteRange placeholder length — adjust numWidth or placeholder");
         }
     } else {
-        // fallback: construir novo segmento e centralizar dentro do espaço disponível (menos ideal)
         const newBr = `/ByteRange [${pad(0)} ${pad(length1)} ${pad(offset2)} ${pad(length2)}]`;
         if (newBr.length > oldSegmentStr.length) {
-            throw new Error("Não foi possível injetar ByteRange: novo segmento maior que o placeholder.");
+            throw new Error("Could not inject ByteRange: new segment larger than placeholder.");
         }
         const diff = oldSegmentStr.length - newBr.length;
         const padLeft = Math.floor(diff / 2);
@@ -126,30 +143,31 @@ function injectByteRangeAndSignature(pdfU8, byteRangePos, contentsHexStart, cont
         newSegmentStr = " ".repeat(padLeft) + newBr + " ".repeat(padRight);
     }
 
-    // escrever newSegmentStr de volta para o pdfU8
     const newSegmentU8 = latin1ToU8(newSegmentStr);
     pdfU8.set(newSegmentU8, brStart);
 
-    // 2) Escrever a assinatura hex no intervalo reservado (contentsHexStart..contentsHexEnd - exclusivo)
     const hexStartIdx = contentsHexStart;
     const hexEndIdx = contentsHexEnd;
     const reservedLen = hexEndIdx - hexStartIdx;
     if (signatureHex.length > reservedLen) {
-        throw new Error("Assinatura maior que espaço reservado. Aumente placeholderSize.");
+        throw new Error("Signature too long to fit in the reserved /Contents space.");
     }
     const paddedSignatureHex = signatureHex + "0".repeat(reservedLen - signatureHex.length);
-    // validar caracteres hex (opcional)
-    if (!/^[0-9A-Fa-f]*$/.test(paddedSignatureHex)) throw new Error("signatureHex contém caracteres não hexadecimais");
 
-    // escrever ASCII hex bytes
+    if (!/^[0-9A-Fa-f]*$/.test(paddedSignatureHex)) throw new Error("signatureHex contains non-hexadecimal characters");
+
     for (let i = 0; i < paddedSignatureHex.length; i++) {
         pdfU8[hexStartIdx + i] = paddedSignatureHex.charCodeAt(i);
     }
 
-    return pdfU8; // modificado in-place (retornamos por conveniência)
+    return pdfU8;
 }
 
-/* Convert base64 to hex (helper in case wallet returns base64) */
+/**
+ * Convert a base64 string to hex string
+ * @param {string} b64 - Base64 encoded string
+ * @returns {string} - Hexadecimal encoded string
+ */
 function base64ToHex(b64) {
     const bin = atob(b64);
     let hex = "";
@@ -159,76 +177,62 @@ function base64ToHex(b64) {
     return hex;
 }
 
-/* ---------- Wallet signing-specific logic ---------- */
-
+/**
+ * Request document signature from Xumm wallet
+ * @param {object} xumm - Xumm SDK instance
+ * @param {Uint8Array} digestU8 - Document hash to be signed
+ * @param {string} account - Xahau wallet address
+ * @returns {Promise<string>} - Promise resolving to the signature in hex format
+ */
 async function requestSignatureFromWallet(xumm, digestU8, account) {
-    // Valida parâmetros
+    if (!xumm) throw new Error("Xumm SDK instance is required.");
+    if (!(digestU8 instanceof Uint8Array)) throw new Error("digestU8 must be a Uint8Array.");
 
-    if (!xumm) throw new Error("Xumm SDK não está disponível no contexto.");
-    if (!(digestU8 instanceof Uint8Array)) throw new Error("digestU8 deve ser um Uint8Array.");
-
-    // Converte Uint8Array para hexadecimal
     const digestHex = Array.from(digestU8)
-        .map(byte => byte.toString(16).padStart(2, '0'))
-        .join('');
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("");
 
-    // Cria o payload de SignIn
     const payload = {
         txjson: {
-            TransactionType: 'AccountSet',  // Tipo oficial que pode ser usado off-ledger
-            Account: account,               // conta que vai assinar
-            Fee: '0',                       // Nenhuma taxa, não será submetido
-            Flags: 0,                        // Sem alterações de flags
+            TransactionType: "SignIn",
+            Account: account,
+            Fee: "0",
+            Flags: 0,
             Memos: [
                 {
                     Memo: {
-                        MemoData: digestHex, // hash do documento
-                        MemoType: Buffer.from('DocumentHash').toString('hex'),   // identificador do memo
+                        MemoData: digestHex,
+                        MemoType: Buffer.from("DocumentHash").toString("hex"),
                     },
                 },
             ],
         },
-        options: {
-            submit: false,  // Apenas assinar, não submeter
-            expire: 5,      // expira em 5 minutos
-        },
-        instructions: `Assine o hash do documento: ${digestHex.substring(0, 10)}...`, // instrução curta
+        options: { submit: false, expire: 5 },
+        custom_meta: { instruction: `Sign this document hash:\n${digestHex}` },
     };
-    console.log(payload);
 
-    try {
-        const { created, resolved } = await xumm.payload.createAndSubscribe(
-            payload,
-            (eventMessage) => {
-                if (eventMessage.data.signed) {
-                    return eventMessage;
-                }
-                if (eventMessage.data.rejected) {
-                    throw new Error('Assinatura rejeitada pelo usuário.');
-                }
-                if (eventMessage.data.expired) {
-                    throw new Error('O payload expirou antes de ser assinado.');
-                }
-            }
-        );
-
-        return resolved
-            .then((payload) => {
-                const response = payload.payload.response;
-                console.log(response);
-                if (response && response.hex) {
-                    const signature = response.hex.replace(/^0x/, ''); // Remove prefixo 0x
-                    return signature; // Retorna a assinatura em hex
-                } else {
-                    throw new Error('Assinatura não encontrada na resposta.');
-                }
+    return new Promise((resolve, reject) => {
+        xumm.payload
+            .createAndSubscribe(payload, (eventMessage) => {
+                const data = eventMessage?.data ?? {};
+                if (data.signed === true) return eventMessage;
+                if (data.signed === false) reject(new Error("The signing request was rejected by the user."));
+                if (data.expired) reject(new Error("The signing request expired before completion."));
             })
-            .catch((error) => {
-                throw new Error(`Error processing signature: ${error.message}`);
-            });
-    } catch (error) {
-        throw new Error(`Error creating signature payload: ${error.message}`);
-    }
+            .then(({ resolved }) => {
+                resolved
+                    .then((payloadResult) => {
+                        const response = payloadResult?.payload?.response;
+                        if (response && response.hex) {
+                            resolve(response.hex.replace(/^0x/, ""));
+                        } else {
+                            reject(new Error("No signature returned from wallet response."));
+                        }
+                    })
+                    .catch((err) => reject(new Error(`Error resolving payload: ${err.message || String(err)}`)));
+            })
+            .catch((err) => reject(new Error(`Error creating payload: ${err.message || String(err)}`)));
+    });
 }
 
 export default function WalletSignPage() {
@@ -376,7 +380,6 @@ export default function WalletSignPage() {
         } catch (err) {
             console.error("Error signing with wallet:", err);
             setMessage({ status: "error", text: err.message || String(err) });
-            alert("Error: " + (err.message || String(err)));
         } finally {
             setBusy(false);
         }
