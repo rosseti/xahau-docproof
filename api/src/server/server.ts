@@ -19,6 +19,7 @@ if (process.argv.includes("--run")) app.use(morgan("tiny"));
 
 app.use(express.json());
 
+import { HttpException } from "@/exceptions";
 import { authenticateJWT } from "@/modules/auth/middleware/authenticateJWT";
 import DIDCreator from "@/modules/did/creators/DIDCreator";
 import UserDocument from "@/modules/documents/models/UserDocument";
@@ -249,16 +250,46 @@ app.get("/api/file/:hash", authenticateJWT, async (req: any, res: any) => {
 
   let document;
 
-  if (docId && signerId) {
-    document = await DocumentService.getDocumentByIdAndSignerId(
-      docId,
-      signerId
-    );
-  } else {
-    document = await UserDocument.findOne({
-      hash,
-      $or: [{ owner: userWallet }, { "signers.wallet": userWallet }],
-    }).exec();
+  try {
+    if (docId && signerId) {
+      if (typeof docId !== "string" || typeof signerId !== "string") {
+        return res.status(400).json({ message: "Invalid query parameters" });
+      }
+
+      document = await DocumentService.getDocumentByIdAndSignerId(
+        docId,
+        signerId
+      );
+
+      // The requested hash must belong to the document from the doc/signer pair.
+      if (document && document.hash !== hash) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      // Signers may not have a wallet yet (before signing); once one is set,
+      // only that wallet (or the owner) may access the file.
+      if (document && document.owner !== userWallet) {
+        // Fail closed: the service must have returned exactly the requested signer.
+        const signer = document.signers?.length === 1 ? document.signers[0] : null;
+        if (!signer) {
+          return res.status(403).json({ message: "Forbidden" });
+        }
+        if (signer.wallet && signer.wallet !== userWallet) {
+          return res.status(403).json({ message: "Forbidden" });
+        }
+      }
+    } else {
+      document = await UserDocument.findOne({
+        hash,
+        $or: [{ owner: userWallet }, { "signers.wallet": userWallet }],
+      }).exec();
+    }
+  } catch (error: any) {
+    if (error instanceof HttpException) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+    console.error("Error fetching document file:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 
   if (!document) {
